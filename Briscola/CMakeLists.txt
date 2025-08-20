@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(E09 C CXX)
+project(BRISCOLA C CXX)
 
 # Enable C and C++ languages
 enable_language(C)
@@ -33,15 +33,15 @@ if(APPLE)
     file(GLOB_RECURSE HEADERS include/*.h include/*.hpp)
 
     # Define the project executable
-    add_executable(E09 ${SOURCES} ${HEADERS})
+    add_executable(BRISCOLA ${SOURCES} ${HEADERS})
 
     # Include directories
-    target_include_directories(E09 PRIVATE ${GLM_INCLUDE_DIRS})
-    target_include_directories(E09 PRIVATE ${CMAKE_SOURCE_DIR}/include)
-    target_include_directories(E09 PUBLIC ${Vulkan_INCLUDE_DIR})
+    target_include_directories(BRISCOLA PRIVATE ${GLM_INCLUDE_DIRS})
+    target_include_directories(BRISCOLA PRIVATE ${CMAKE_SOURCE_DIR}/include)
+    target_include_directories(BRISCOLA PUBLIC ${Vulkan_INCLUDE_DIR})
 
     # Link libraries
-    target_link_libraries(E09 PRIVATE Vulkan::Vulkan glfw Threads::Threads)
+    target_link_libraries(BRISCOLA PRIVATE Vulkan::Vulkan glfw Threads::Threads)
 
     # Shader setup for macOS
     file(GLOB SPIRV_SOURCE_FILES "${CMAKE_SOURCE_DIR}/shaders/*.spv")
@@ -79,11 +79,11 @@ if(APPLE)
         file(COPY ${SPV_FILE} DESTINATION ${CMAKE_BINARY_DIR}/shaders)
     endforeach()
 
-    # Add shader target (This part is commented out because another target with the same name already exists
+    # Add shader target
     #add_custom_target(Shaders DEPENDS ${SPIRV_SOURCE_FILES})
 
     # Ensure that depends on the SPIR-V files
-    add_dependencies(E09 Shaders)
+    #add_dependencies(BRISCOLA Shaders)
 
     # Copy resources (textures, models, etc.) to the build directory
     file(COPY ${CMAKE_SOURCE_DIR}/assets/textures DESTINATION ${CMAKE_BINARY_DIR}/assets)

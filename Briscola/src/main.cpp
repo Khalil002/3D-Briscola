@@ -57,11 +57,8 @@ struct skyBoxUniformBufferObject {
 	alignas(16) glm::mat4 mvpMat;
 };
 
-
-
-
 // MAIN ! 
-class E09 : public BaseProject {
+class BRISCOLA : public BaseProject {
 	protected:
 	// Here you list all the Vulkan objects you need:
 	
@@ -95,12 +92,12 @@ class E09 : public BaseProject {
 	TextMaker txt;
 	
 	// Other application parameters
-	float Ar;	// Aspect ratio
+	float Ar{};	// Aspect ratio
 
-	glm::mat4 ViewPrj;
-	glm::mat4 World;
+	glm::mat4 ViewPrj{};
+	glm::mat4 World{};
 	glm::vec3 Pos = glm::vec3(0,0,5);
-	glm::vec3 cameraPos;
+	glm::vec3 cameraPos{};
 	float Yaw = glm::radians(0.0f);
 	float Pitch = glm::radians(0.0f);
 	float Roll = glm::radians(0.0f);
@@ -112,7 +109,7 @@ class E09 : public BaseProject {
 		// window size, titile and initial background
 		windowWidth = 800;
 		windowHeight = 600;
-		windowTitle = "E09 - Showing animations";
+		windowTitle = "CG Project - Briscola";
     	windowResizable = GLFW_TRUE;
 		
 		// Initial aspect ratio
@@ -376,7 +373,7 @@ std::cout << "\nLoading the scene\n\n";
 		// Simple trick to avoid having always 'T->'
 		// in che code that populates the command buffer!
 //std::cout << "Populating command buffer for " << currentImage << "\n";
-		E09 *T = (E09 *)Params;
+		BRISCOLA *T = (BRISCOLA *)Params;
 		T->populateCommandBuffer(commandBuffer, currentImage);
 	}
 	// This is the real place where the Command Buffer is written
@@ -691,7 +688,7 @@ std::cout << "Playing anim: " << curAnim << "\n";
 
 // This is the main: probably you do not need to touch this!
 int main() {
-    E09 app;
+    BRISCOLA app;
 
     try {
         app.run();
