@@ -10,7 +10,7 @@ struct Instance {
 	DescriptorSet ***DS;
 	std::vector<DescriptorSetLayout *> **D;
 	int *NDs;
-	
+	//int Cid;
 	glm::mat4 Wm;
 	TechniqueInstances *TIp;
 } ;

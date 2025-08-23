@@ -87,7 +87,10 @@ vec2 getAtlasUV(vec2 uv, int cardIndex, int cols, int rows) {
 
 void main() {
     vec3 albedo;
-    if (gl_FrontFacing) {
+	vec3 N = normalize(fragNorm);
+	vec3 V = normalize(gubo.eyePos - fragPos);
+	bool isFront = dot(N, V) >= 0.0;
+    if (isFront) {
         // Example: 10 columns × 4 rows = 40 cards
         vec2 atlasUV = getAtlasUV(fragUV, vCardIndex, 10, 4);
         albedo = texture(uAtlas, atlasUV).rgb;
