@@ -20,15 +20,15 @@ layout(location = 3) flat out int vCardIndex;
 
 void main() {
 	// vertex shader
-	//gl_Position = ubo.mvpMat * vec4(inPosition, 1.0);
-	//vec4 wp     = ubo.mMat * vec4(inPosition, 1.0);
-	//fragPos     = wp.xyz;
-	//fragNorm    = mat3(ubo.nMat) * inNorm;  // then normalize in FS
+	gl_Position = ubo.mvpMat * vec4(inPosition, 1.0);
+	vec4 wp     = ubo.mMat * vec4(inPosition, 1.0);
+	fragPos     = wp.xyz;
+	fragNorm    = mat3(ubo.nMat) * inNorm;  // then normalize in FS
 	
 
-	gl_Position = ubo.mvpMat * vec4(inPosition, 1.0);
-	fragPos = (ubo.mMat * vec4(inPosition, 1.0)).xyz;
-	fragNorm = (ubo.nMat * vec4(inNorm, 0.0)).xyz;
+	//gl_Position = ubo.mvpMat * vec4(inPosition, 1.0);
+	//fragPos = (ubo.mMat * vec4(inPosition, 1.0)).xyz;
+	//fragNorm = (ubo.nMat * vec4(inNorm, 0.0)).xyz;
 	fragUV = inUV;
     vCardIndex = ubo.cardIndex;
 }

@@ -87,18 +87,18 @@ vec2 getAtlasUV(vec2 uv, int cardIndex, int cols, int rows) {
 
 void main() {
     vec3 albedo;
-	vec3 N = normalize(fragNorm);
-	vec3 V = normalize(gubo.eyePos - fragPos);
-	bool isFront = dot(N, V) >= 0.0;
-    if (isFront) {
+    vec3 Norm = normalize(fragNorm);
+
+    if (gl_FrontFacing) {
         // Example: 10 columns × 4 rows = 40 cards
         vec2 atlasUV = getAtlasUV(fragUV, vCardIndex, 10, 4);
         albedo = texture(uAtlas, atlasUV).rgb;
     } else {
         // Back face → back texture
         albedo = texture(uBack, fragUV).rgb;
+        Norm = -Norm;
     }
-	vec3 Norm = normalize(fragNorm);
+
 	vec3 EyeDir = normalize(gubo.eyePos - fragPos);
 	
 	vec3 lightDir = gubo.lightDir;
@@ -123,4 +123,7 @@ void main() {
 	vec3 col  = (Diffuse + Specular) * lightColor + Ambient;
 	
 	outColor = vec4(col, 1.0f);
+	//outColor = gl_FrontFacing ? outColor : vec4(0,0,1,1);
+
+
 }

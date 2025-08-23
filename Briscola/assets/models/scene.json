@@ -13,7 +13,7 @@
 		{"id": "gb", "VD": "VDsimp", "model": "assets/models/gelatoBus.mgcg", "format":"MGCG"},
 		{"id": "skybox", "VD": "VDskybox", "model": "assets/models/SkyBoxCube.obj", "format":"OBJ"},
 		{"id": "table", "VD": "VDsimp", "model": "assets/models/table2.obj", "format":"OBJ"},
-		{"id": "card", "VD": "VDsimp", "model": "assets/models/card.obj", "format":"OBJ"},
+		{"id": "card", "VD": "VDsimp", "model": "assets/models/card2.obj", "format":"OBJ"},
 		{"id": "ground",  "VD": "VDtan",  "model": "Ground", "node": "Ground", "meshId": 0, "asset": "ct", "format":"ASSET"}
 	],
 	"textures": [
@@ -201,7 +201,7 @@
     "scale": [1, 1, 1]},
   {"id": "card38","model": "card","texture": ["card_atlas", "card_back"],
     "translate": [0.48, 0.75, 0.3],
-    "eulerAngles": [0, 0, 0],
+    "eulerAngles": [180, 0, 0],
     "scale": [1, 1, 1]},
   {"id": "card39","model": "card","texture": ["card_atlas", "card_back"],
     "translate": [0.54, 0.85, 0.3],

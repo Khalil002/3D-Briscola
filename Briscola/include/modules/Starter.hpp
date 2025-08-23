@@ -367,6 +367,8 @@ struct Pipeline {
 	VkCompareOp compareOp;
 	VkPolygonMode polyModel;
  	VkCullModeFlagBits CM;
+	VkFrontFace frontFace;
+
  	bool transp;
 	VkPrimitiveTopology topology;
 	
@@ -382,6 +384,7 @@ struct Pipeline {
 	void setCompareOp(VkCompareOp _compareOp);
 	void setPolygonMode(VkPolygonMode _polyModel);
 	void setCullMode(VkCullModeFlagBits _CM);
+	void setFrontFace(VkFrontFace _frontFace);
 	void setTransparency(bool _transp);
 	void setTopology(VkPrimitiveTopology _topology);
   	
@@ -4087,6 +4090,7 @@ void Pipeline::init(BaseProject *bp, VertexDescriptor *vd,
  	compareOp = VK_COMPARE_OP_LESS;
  	polyModel = VK_POLYGON_MODE_FILL;
  	CM = VK_CULL_MODE_BACK_BIT;
+	frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
  	transp = false;
 	topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
@@ -4104,6 +4108,10 @@ void Pipeline::setPolygonMode(VkPolygonMode _polyModel) {
 
 void Pipeline::setCullMode(VkCullModeFlagBits _CM) {
  	CM = _CM;
+}
+
+void Pipeline::setFrontFace(VkFrontFace _frontFace) {
+ 	frontFace = _frontFace;
 }
 
 void Pipeline::setTransparency(bool _transp) {
@@ -4180,7 +4188,7 @@ void Pipeline::create(RenderPass *RP) {
 	rasterizer.polygonMode = polyModel;
 	rasterizer.lineWidth = 1.0f;
 	rasterizer.cullMode = CM;
-	rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+	rasterizer.frontFace = frontFace;
 	rasterizer.depthBiasEnable = VK_FALSE;
 	rasterizer.depthBiasConstantFactor = 0.0f; // Optional
 	rasterizer.depthBiasClamp = 0.0f; // Optional

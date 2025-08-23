@@ -206,7 +206,7 @@ class BRISCOLA : public BaseProject {
 		DSLlocalCard.init(this, {
 			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(UniformBufferObjectCard), 1}, // binding 0, UBO
 			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1}, // binding 1, uAtlas
-			{2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1}  // binding 2, uBack
+			{2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1, 1}  // binding 2, uBack
 		});
 		
 
@@ -286,6 +286,7 @@ class BRISCOLA : public BaseProject {
 		P_PBR.init(this, &VDtan, "shaders/SimplePosNormUvTan.vert.spv", "shaders/PBR.frag.spv", {&DSLglobal, &DSLlocalPBR});
 		Pcard.init(this, &VDsimp, "shaders/card2.vert.spv", "shaders/card2.frag.spv", {&DSLglobal, &DSLlocalCard});
 		Pcard.setCullMode(VK_CULL_MODE_NONE);
+		//Pcard.setFrontFace(VK_FRONT_FACE_CLOCKWISE); 
 
 		PRs.resize(5);
 		PRs[0].init("CookTorranceChar", {
