@@ -23,6 +23,13 @@ struct VertexSimp {
 	glm::vec2 UV;
 };
 
+struct VertexCard {
+    glm::vec3 pos;    // location = 0
+    glm::vec3 norm;   // location = 1
+    glm::vec2 UV;     // location = 2
+    int cardIndex;    // location = 3
+};
+
 struct skyBoxVertex {
 	glm::vec3 pos;
 };
@@ -32,6 +39,10 @@ struct VertexTan {
 	glm::vec3 norm;
 	glm::vec2 UV;
 	glm::vec4 tan;
+};
+
+struct InstanceCard {
+    int cardIndex;   // location = 3
 };
 
 struct GlobalUniformBufferObject {
@@ -63,15 +74,18 @@ class BRISCOLA : public BaseProject {
 	// Here you list all the Vulkan objects you need:
 	
 	// Descriptor Layouts [what will be passed to the shaders]
-	DescriptorSetLayout DSLlocalChar, DSLlocalSimp, DSLlocalPBR, DSLglobal, DSLskyBox;
+	DescriptorSetLayout DSLlocalCard, DSLlocalChar, DSLlocalSimp, DSLlocalPBR, DSLglobal, DSLskyBox;
 
 	// Vertex formants, Pipelines [Shader couples] and Render passes
 	VertexDescriptor VDchar;
 	VertexDescriptor VDsimp;
 	VertexDescriptor VDskyBox;
 	VertexDescriptor VDtan;
+	VertexDescriptor VDcard;
+
 	RenderPass RP;
-	Pipeline Pchar, PsimpObj, PskyBox, P_PBR;
+	Pipeline Pcard, Pchar, PsimpObj, PskyBox, P_PBR;
+
 	//*DBG*/Pipeline PDebug;
 
 	// Models, textures and Descriptors (values assigned to the uniforms)
@@ -158,7 +172,11 @@ class BRISCOLA : public BaseProject {
 					{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1},
 					{2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1, 1}
 				  });
-
+		DSLlocalCard.init(this, {
+			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(UniformBufferObjectSimp), 1}, // binding 0, UBO
+			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1}, // binding 1, uAtlas
+			{2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1}  // binding 2, uBack
+		});
 		DSLskyBox.init(this, {
 			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(skyBoxUniformBufferObject), 1},
 			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1}
@@ -175,6 +193,15 @@ class BRISCOLA : public BaseProject {
 					{3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 2, 1},
                     {4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 3, 1}
 				  });
+		
+		//DSLlocalCard.init(this, {
+		//	{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(UniformBufferObjectSimp), 1},
+		//	{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1}, // atlas
+		//	{2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1, 1}  // back
+		//});
+		
+
+
 
 		VDchar.init(this, {
 				  {0, sizeof(VertexChar), VK_VERTEX_INPUT_RATE_VERTEX}
@@ -221,12 +248,23 @@ class BRISCOLA : public BaseProject {
 				  {0, 3, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(VertexTan, tan),
 				         sizeof(glm::vec4), TANGENT}
 				});
-				
-		VDRs.resize(4);
+		//Normally the cardIndex would be in another binding, one per instance but the starter.hpp does not support
+		VDcard.init(this, {
+			{0, sizeof(VertexCard), VK_VERTEX_INPUT_RATE_VERTEX}
+			}, {
+			{0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VertexCard, pos),  sizeof(glm::vec3), POSITION},
+			{0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VertexCard, norm), sizeof(glm::vec3), NORMAL},
+			{0, 2, VK_FORMAT_R32G32_SFLOAT,    offsetof(VertexCard, UV),   sizeof(glm::vec2), UV},
+			{0, 3, VK_FORMAT_R32_SINT,         offsetof(VertexCard, cardIndex), sizeof(int), OTHER}
+		});
+
+
+		VDRs.resize(5);
 		VDRs[0].init("VDchar",   &VDchar);
 		VDRs[1].init("VDsimp",   &VDsimp);
 		VDRs[2].init("VDskybox", &VDskyBox);
 		VDRs[3].init("VDtan",    &VDtan);
+		VDRs[4].init("VDcard",    &VDcard);
 		
 		// initializes the render passes
 		RP.init(this);
@@ -237,6 +275,9 @@ class BRISCOLA : public BaseProject {
 		// Pipelines [Shader couples]
 		// The last array, is a vector of pointer to the layouts of the sets that will
 		// be used in this pipeline. The first element will be set 0, and so on..
+
+		Pcard.init(this, &VDcard, "shaders/card3.vert.spv", "shaders/card3.frag.spv", {&DSLglobal, &DSLlocalCard});
+
 		Pchar.init(this, &VDchar, "shaders/PosNormUvTanWeights.vert.spv", "shaders/CookTorranceForCharacter.frag.spv", {&DSLglobal, &DSLlocalChar});
 
 		PsimpObj.init(this, &VDsimp, "shaders/SimplePosNormUV.vert.spv", "shaders/CookTorrance.frag.spv", {&DSLglobal, &DSLlocalSimp});
@@ -248,7 +289,7 @@ class BRISCOLA : public BaseProject {
 
 		P_PBR.init(this, &VDtan, "shaders/SimplePosNormUvTan.vert.spv", "shaders/PBR.frag.spv", {&DSLglobal, &DSLlocalPBR});
 
-		PRs.resize(4);
+		PRs.resize(5);
 		PRs[0].init("CookTorranceChar", {
 							 {&Pchar, {//Pipeline and DSL for the first pass
 								 /*DSLglobal*/{},
@@ -284,13 +325,31 @@ class BRISCOLA : public BaseProject {
 									 }
 									}}
 							  }, /*TotalNtextures*/4, &VDtan);
-
+		//PRs[4].init("CardTechnique", {
+		//		{&Pcard, {
+		//			/*DSLglobal*/{},
+		//			/*DSLlocalCard*/{
+		//				/*t0*/{true, 0, {}}, // atlas
+		//				/*t1*/{true, 1, {}}  // back
+		//			}
+		//		}}
+		//	}, /*TotalNtextures*/2, &VDcard);
+		
+		PRs[4].init("CardTechnique", {
+			{&Pcard, {
+				/*DSLglobal*/{},
+				/*DSLlocalCard*/{
+					/*t0*/{true,  0, {}}, // binding 1 → uAtlas
+					/*t1*/{true,  1, {}}  // binding 2 → uBack
+				}
+			}}
+		}, /*TotalNtextures*/2, &VDcard);
 		// Models, textures and Descriptors (values assigned to the uniforms)
 		
 		// sets the size of the Descriptor Set Pool
 		DPSZs.uniformBlocksInPool = 3;
-		DPSZs.texturesInPool = 4;
-		DPSZs.setsInPool = 3;
+		DPSZs.texturesInPool = 6;
+		DPSZs.setsInPool = 4;
 		
 std::cout << "\nLoading the scene\n\n";
 		if(SC.init(this, /*Npasses*/1, VDRs, PRs, "assets/models/scene.json") != 0) {
@@ -325,7 +384,8 @@ std::cout << "\nLoading the scene\n\n";
 		PsimpObj.create(&RP);
 		PskyBox.create(&RP);
 		P_PBR.create(&RP);
-		
+		Pcard.create(&RP);
+
 		SC.pipelinesAndDescriptorSetsInit();
 		txt.pipelinesAndDescriptorSetsInit();
 	}
@@ -336,6 +396,7 @@ std::cout << "\nLoading the scene\n\n";
 		PsimpObj.cleanup();
 		PskyBox.cleanup();
 		P_PBR.cleanup();
+		Pcard.cleanup();
 		RP.cleanup();
 
 		SC.pipelinesAndDescriptorSetsCleanup();
@@ -350,11 +411,13 @@ std::cout << "\nLoading the scene\n\n";
 		DSLlocalPBR.cleanup();
 		DSLskyBox.cleanup();
 		DSLglobal.cleanup();
+		DSLlocalCard.cleanup();
 		
 		Pchar.destroy();	
 		PsimpObj.destroy();
-		PskyBox.destroy();		
-		P_PBR.destroy();		
+		PskyBox.destroy();
+		P_PBR.destroy();
+		Pcard.destroy();
 
 		RP.destroy();
 
@@ -543,6 +606,17 @@ std::cout << "Playing anim: " << curAnim << "\n";
 
 			SC.TI[3].I[instanceId].DS[0][0]->map(currentImage, &gubo, 0); // Set 0
 			SC.TI[3].I[instanceId].DS[0][1]->map(currentImage, &ubos, 0);  // Set 1
+		}
+
+
+		// CARD objects
+		for(instanceId = 0; instanceId < SC.TI[4].InstanceCount; instanceId++) {
+			ubos.mMat   = SC.TI[4].I[instanceId].Wm;
+			ubos.mvpMat = ViewPrj * ubos.mMat;
+			ubos.nMat   = glm::inverse(glm::transpose(ubos.mMat));
+
+			SC.TI[4].I[instanceId].DS[0][0]->map(currentImage, &gubo, 0); // Set 0
+			SC.TI[4].I[instanceId].DS[0][1]->map(currentImage, &ubos, 0);  // Set 1
 		}
 
 

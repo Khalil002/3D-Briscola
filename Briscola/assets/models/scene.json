@@ -12,34 +12,56 @@
 		{"id": "hm1",  "VD": "VDchar",  "model": "Mesh", "node": "Ch01_Body", "meshId": 1, "asset": "hm", "format":"ASSET"},
 		{"id": "gb", "VD": "VDsimp", "model": "assets/models/gelatoBus.mgcg", "format":"MGCG"},
 		{"id": "skybox", "VD": "VDskybox", "model": "assets/models/SkyBoxCube.obj", "format":"OBJ"},
+		{"id": "table", "VD": "VDsimp", "model": "assets/models/table2.obj", "format":"OBJ"},
+		{"id": "card", "VD": "VDsimp", "model": "assets/models/card.obj", "format":"OBJ"},
 		{"id": "ground",  "VD": "VDtan",  "model": "Ground", "node": "Ground", "meshId": 0, "asset": "ct", "format":"ASSET"}
 	],
 	"textures": [
 		{"id": "st",    "texture": "assets/textures/uomo/Ch01_1001_Diffuse.png",	   "format": "C"},
 		{"id": "pnois", "texture": "assets/textures/Perlin_noise.png", "format": "C"},
 		{"id": "main", "texture": "assets/textures/textures0.png", "format": "C"},
-		{"id": "skybox", "texture": "assets/textures/skybox.jpg", "format": "C"},
-		{"id": "Pavement_Concrete_Marked_Footprints_UV_CM_1", "texture": "assets/textures/MainScene/Pavement_Concrete_Marked_Footprints_UV_CM_1.jpg", "format": "C"},
+		{"id": "skybox", "texture": "assets/textures/skybox_2.jpg", "format": "C"},
+		{"id": "table", "texture": "assets/textures/table_texture.jpg", "format": "C"},
+		{"id": "grass_ground", "texture": "assets/textures/grass_ground.jpg", "format": "C"},
 		{"id": "PavementConcreteNM", "texture": "assets/textures/MainScene/PavementConcreteNM.png", "format": "D"},
 		{"id": "scbmt", "texture": "assets/textures/SoccerBall/Untitled.png", "format": "D"},
-		{"id": "Untitled", "texture": "assets/textures/MainScene/Untitled.png", "format": "D"}
+		{"id": "Untitled", "texture": "assets/textures/MainScene/Untitled.png", "format": "D"},
+		{"id": "card_atlas", "texture": "assets/textures/cards_atlas.png", "format": "C"},
+		{"id": "card_back", "texture": "assets/textures/card_back.png", "format": "C"}
 	],
 	"instances": [
-		{"technique": "CookTorranceChar", "elements": [
-			{"id": "hm0",  "model": "hm0",   "texture": ["st"]},
-			{"id": "hm1",  "model": "hm1",   "texture": ["st"]}
-		]}, 
+		{"technique": "CookTorranceChar", "elements": []}, 
 		{"technique": "CookTorranceNoiseSimp", "elements": [
-			{"id": "gb1",  "model": "gb",   "texture": ["main", "pnois"],
-				"translate": [2, 0, 0],
-				"quaternion" : [0.707, 0, 0.707, 0],
-				"scale": [0.75, 0.25, 0.75]}
+			{"id": "table",  "model": "table",   "texture": ["table", "pnois"],
+				"translate": [0, 0, 0],
+				"eulerAngles" : [0, 0, 0],
+				"scale": [1, 1, 1]},
+			{"id": "card0",  "model": "card",   "texture": ["card_atlas", "pnois"], 
+				"translate": [0, 0.75, 0],
+				"eulerAngles" : [0, 0, 0],
+				"scale": [1, 1, 1]},
+			{"id": "card1",  "model": "card",   "texture": ["card_back", "pnois"],
+				"translate": [0.06, 0.75, 0],
+				"eulerAngles" : [0, 0, 0],
+				"scale": [1, 1, 1]}
 		]}, 
+		{"technique": "CardTechnique", "elements": [
+			{"id": "card0","model": "card","texture": ["card_atlas", "card_back"],
+				"translate": [0, 0.75, 0],
+				"eulerAngles": [0, 0, 0],
+				"scale": [1, 1, 1],
+				"cardIndex": 12},
+			{"id": "card1","model": "card","texture": ["card_atlas", "card_back"],
+				"translate": [0.06, 0.75, 0],
+				"eulerAngles": [0, 90, 0],
+				"scale": [1, 1, 1],
+				"cardIndex": 25}
+		]},
 		{"technique": "SkyBox", "elements": [
 			{"id": "skybox",  "model": "skybox",   "texture": ["skybox"]}
 		]}, 
 		{"technique": "PBR", "elements": [
-			{"id": "ground",  "model": "ground",   "texture": ["Pavement_Concrete_Marked_Footprints_UV_CM_1", "PavementConcreteNM", "scbmt", "Untitled"]}
+			{"id": "ground",  "model": "ground",   "texture": ["grass_ground", "PavementConcreteNM", "scbmt", "Untitled"]}
 		]}
 	]
 }
