@@ -8,6 +8,17 @@
 #include "modules/Scene.hpp"
 #include "modules/Animations.hpp"
 
+std::ostream& operator<<(std::ostream& os, const glm::mat4& mat) {
+    for (int row = 0; row < 4; ++row) {
+        os << "| ";
+        for (int col = 0; col < 4; ++col) {
+            os << mat[col][row] << " "; // GLM is column-major!
+        }
+        os << "|\n";
+    }
+    return os;
+}
+
 // The uniform buffer object used in this example
 struct VertexChar {
 	glm::vec3 pos;
@@ -97,7 +108,8 @@ class BRISCOLA : public BaseProject {
 	
 	// To support animation
 	#define N_ANIMATIONS 5
-	
+
+	bool what = false;
 	AnimBlender AB;
 	Animations Anim[N_ANIMATIONS];
 	SkeletalAnimation SKA;
@@ -172,11 +184,7 @@ class BRISCOLA : public BaseProject {
 					{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1},
 					{2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1, 1}
 				  });
-		DSLlocalCard.init(this, {
-			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(UniformBufferObjectSimp), 1}, // binding 0, UBO
-			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1}, // binding 1, uAtlas
-			{2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1}  // binding 2, uBack
-		});
+		
 		DSLskyBox.init(this, {
 			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(skyBoxUniformBufferObject), 1},
 			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1}
@@ -193,12 +201,11 @@ class BRISCOLA : public BaseProject {
 					{3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 2, 1},
                     {4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 3, 1}
 				  });
-		
-		//DSLlocalCard.init(this, {
-		//	{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(UniformBufferObjectSimp), 1},
-		//	{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1}, // atlas
-		//	{2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1, 1}  // back
-		//});
+		DSLlocalCard.init(this, {
+			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(UniformBufferObjectSimp), 1}, // binding 0, UBO
+			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1}, // binding 1, uAtlas
+			{2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1}  // binding 2, uBack
+		});
 		
 
 
@@ -289,7 +296,7 @@ class BRISCOLA : public BaseProject {
 
 		P_PBR.init(this, &VDtan, "shaders/SimplePosNormUvTan.vert.spv", "shaders/PBR.frag.spv", {&DSLglobal, &DSLlocalPBR});
 		Pcard.init(this, &VDcard, "shaders/card3.vert.spv", "shaders/card3.frag.spv", {&DSLglobal, &DSLlocalCard});
-		
+
 		PRs.resize(5);
 		PRs[0].init("CookTorranceChar", {
 							 {&Pchar, {//Pipeline and DSL for the first pass
@@ -326,15 +333,6 @@ class BRISCOLA : public BaseProject {
 									 }
 									}}
 							  }, /*TotalNtextures*/4, &VDtan);
-		//PRs[4].init("CardTechnique", {
-		//		{&Pcard, {
-		//			/*DSLglobal*/{},
-		//			/*DSLlocalCard*/{
-		//				/*t0*/{true, 0, {}}, // atlas
-		//				/*t1*/{true, 1, {}}  // back
-		//			}
-		//		}}
-		//	}, /*TotalNtextures*/2, &VDcard);
 		
 		PRs[4].init("CardTechnique", {
 			{&Pcard, {
@@ -586,6 +584,7 @@ std::cout << "Playing anim: " << curAnim << "\n";
 		UniformBufferObjectSimp ubos{};	
 		// normal objects
 		for(instanceId = 0; instanceId < SC.TI[1].InstanceCount; instanceId++) {
+			if (!what) std::cout << SC.TI[1].I[instanceId].Wm;
 			ubos.mMat   = SC.TI[1].I[instanceId].Wm;
 			ubos.mvpMat = ViewPrj * ubos.mMat;
 			ubos.nMat   = glm::inverse(glm::transpose(ubos.mMat));
@@ -611,15 +610,18 @@ std::cout << "Playing anim: " << curAnim << "\n";
 
 
 		// CARD objects
+		UniformBufferObjectSimp ubos2{};
 		for(instanceId = 0; instanceId < SC.TI[4].InstanceCount; instanceId++) {
-			ubos.mMat   = SC.TI[4].I[instanceId].Wm;
-			ubos.mvpMat = ViewPrj * ubos.mMat;
-			ubos.nMat   = glm::inverse(glm::transpose(ubos.mMat));
+			if (!what) std::cout << SC.TI[4].I[instanceId].Wm;
+			ubos2.mMat   = SC.TI[4].I[instanceId].Wm;
+			ubos2.mvpMat = ViewPrj * ubos2.mMat;
+			ubos2.nMat   = glm::inverse(glm::transpose(ubos2.mMat));
 
 			SC.TI[4].I[instanceId].DS[0][0]->map(currentImage, &gubo, 0); // Set 0
-			SC.TI[4].I[instanceId].DS[0][1]->map(currentImage, &ubos, 0);  // Set 1
+			SC.TI[4].I[instanceId].DS[0][1]->map(currentImage, &ubos2, 0);  // Set 1
 		}
 
+		what = true;
 
 		// updates the FPS
 		static float elapsedT = 0.0f;
