@@ -110,3 +110,9 @@
 		]}
 	]
 }
+
+{"id": "card1","model": "card","texture": ["card_atlas", "card_back"],
+				"translate": [0.06, 0.75, 0],
+				"eulerAngles": [0, 90, 0],
+				"scale": [1, 1, 1],
+				"cardIndex": 25}

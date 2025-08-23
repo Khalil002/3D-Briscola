@@ -35,33 +35,21 @@
 			{"id": "table",  "model": "table",   "texture": ["table", "pnois"],
 				"translate": [0, 0, 0],
 				"eulerAngles" : [0, 0, 0],
-				"scale": [1, 1, 1]},
-			{"id": "card0",  "model": "card",   "texture": ["card_atlas", "pnois"], 
-				"translate": [0, 0.75, 0],
-				"eulerAngles" : [0, 0, 0],
-				"scale": [1, 1, 1]},
-			{"id": "card1",  "model": "card",   "texture": ["card_back", "pnois"],
-				"translate": [0.06, 0.75, 0],
-				"eulerAngles" : [0, 0, 0],
 				"scale": [1, 1, 1]}
+			
 		]}, 
-		{"technique": "CardTechnique", "elements": [
-			{"id": "card0","model": "card","texture": ["card_atlas", "card_back"],
-				"translate": [0, 0.75, 0],
-				"eulerAngles": [0, 0, 0],
-				"scale": [1, 1, 1],
-				"cardIndex": 12},
-			{"id": "card1","model": "card","texture": ["card_atlas", "card_back"],
-				"translate": [0.06, 0.75, 0],
-				"eulerAngles": [0, 90, 0],
-				"scale": [1, 1, 1],
-				"cardIndex": 25}
-		]},
 		{"technique": "SkyBox", "elements": [
 			{"id": "skybox",  "model": "skybox",   "texture": ["skybox"]}
 		]}, 
 		{"technique": "PBR", "elements": [
 			{"id": "ground",  "model": "ground",   "texture": ["grass_ground", "PavementConcreteNM", "scbmt", "Untitled"]}
+		]},
+		{"technique": "CardTechnique", "elements": [
+			{"id": "card0","model": "card","texture": ["card_atlas", "card_back"],
+				"translate": [0, 0.75, 0],
+				"eulerAngles": [0, 0, 0],
+				"scale": [1, 1, 1],
+				"cardIndex": 12}
 		]}
 	]
 }

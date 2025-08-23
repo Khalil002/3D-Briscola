@@ -276,7 +276,7 @@ class BRISCOLA : public BaseProject {
 		// The last array, is a vector of pointer to the layouts of the sets that will
 		// be used in this pipeline. The first element will be set 0, and so on..
 
-		Pcard.init(this, &VDcard, "shaders/card3.vert.spv", "shaders/card3.frag.spv", {&DSLglobal, &DSLlocalCard});
+		
 
 		Pchar.init(this, &VDchar, "shaders/PosNormUvTanWeights.vert.spv", "shaders/CookTorranceForCharacter.frag.spv", {&DSLglobal, &DSLlocalChar});
 
@@ -288,7 +288,8 @@ class BRISCOLA : public BaseProject {
 		PskyBox.setPolygonMode(VK_POLYGON_MODE_FILL);
 
 		P_PBR.init(this, &VDtan, "shaders/SimplePosNormUvTan.vert.spv", "shaders/PBR.frag.spv", {&DSLglobal, &DSLlocalPBR});
-
+		Pcard.init(this, &VDcard, "shaders/card3.vert.spv", "shaders/card3.frag.spv", {&DSLglobal, &DSLlocalCard});
+		
 		PRs.resize(5);
 		PRs[0].init("CookTorranceChar", {
 							 {&Pchar, {//Pipeline and DSL for the first pass
