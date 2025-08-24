@@ -7,6 +7,7 @@
 #include "modules/TextMaker.hpp"
 #include "modules/Scene.hpp"
 #include "modules/Animations.hpp"
+#include <glm/gtx/quaternion.hpp>
 
 std::ostream& operator<<(std::ostream& os, const glm::mat4& mat) {
     for (int row = 0; row < 4; ++row) {
@@ -81,7 +82,76 @@ struct skyBoxUniformBufferObject {
 	alignas(16) glm::mat4 mvpMat;
 };
 
-// MAIN ! 
+
+
+struct CardAnim {
+    int   techIdx   = 4;          // technique index for cards (SC.TI[4])
+    int   instIdx   = 0;          // which card instance
+    bool  active    = false;
+
+    // timing
+    float duration  = 0.6f;       // seconds
+    float elapsed   = 0.0f;
+
+    // transform endpoints
+    glm::vec3 p0{}, p1{};
+    glm::quat q0{1,0,0,0}, q1{1,0,0,0};
+    glm::vec3 s0{1,1,1}, s1{1,1,1};
+
+    // optional: flip mid‑way (e.g., change cardIndex at 50%)
+    bool  doFaceSwap = false;
+    bool  swapped    = false;
+
+    void startMove(int tIdx, int iIdx, glm::vec3 from, glm::vec3 to, float seconds) {
+        techIdx = tIdx; instIdx = iIdx;
+        // Extract current rotation/scale from current Wm if you track them separately,
+        // else assume identity rotation/scale for a simple slide.
+        p0 = from; p1 = to;
+        q0 = glm::quat(1,0,0,0); q1 = q0;
+        s0 = s1 = glm::vec3(1.0f);
+        duration = seconds; elapsed = 0.0f; active = true;
+        doFaceSwap = swapped = false;
+    }
+
+    void startFlip(int tIdx, int iIdx, glm::vec3 pivot, float seconds, glm::vec3 axis = {0,1,0}) {
+        techIdx = tIdx; instIdx = iIdx;
+        // Keep position, scale fixed; animate rotation 0..pi about local axis at pivot
+        p0 = p1 = pivot;
+        q0 = glm::quat(1,0,0,0);
+        q1 = glm::angleAxis(glm::pi<float>(), glm::normalize(axis)); // 180°
+        s0 = s1 = glm::vec3(1.0f);
+        duration = seconds; elapsed = 0.0f; active = true;
+        doFaceSwap = true; swapped = false;
+    }
+
+    // Smooth easing
+    static float ease(float t){ t = glm::clamp(t,0.0f,1.0f); return t*t*(3.0f - 2.0f*t); }
+
+    // Returns current world matrix
+    glm::mat4 tick(float dt, glm::mat4 base = glm::mat4(1.0f)) {
+        if(!active) return base;
+        elapsed += dt;
+        float u = ease(elapsed / duration);
+        glm::vec3 p = glm::mix(p0, p1, u);
+        glm::quat q = glm::slerp(q0, q1, u);
+        glm::vec3 s = glm::mix(s0, s1, u);
+
+        // swap face (e.g., change cardIndex) at halfway of a flip
+        if(doFaceSwap && !swapped && u >= 0.5f){
+            // Example: toggle the instance's card index (front value) here if you want
+            // SC.TI[techIdx].I[instIdx].cardIndex = newIndex;
+            swapped = true;
+        }
+
+        glm::mat4 T = glm::translate(glm::mat4(1.0f), p);
+        glm::mat4 R = glm::mat4_cast(q);
+        glm::mat4 S = glm::scale(glm::mat4(1.0f), s);
+        if(elapsed >= duration){ active = false; }
+        return T * R * S;
+    }
+};
+
+// MAIN !
 class BRISCOLA : public BaseProject {
 	protected:
 	// Here you list all the Vulkan objects you need:
@@ -115,6 +185,11 @@ class BRISCOLA : public BaseProject {
 	AnimBlender AB;
 	Animations Anim[N_ANIMATIONS];
 	SkeletalAnimation SKA;
+
+	// Card Animation
+	CardAnim cardAnim;
+
+	
 
 	// to provide textual feedback
 	TextMaker txt;
@@ -443,6 +518,10 @@ std::cout << "\nLoading the scene\n\n";
 	// Here is where you update the uniforms.
 	// Very likely this will be where you will be writing the logic of your application.
 	void updateUniformBuffer(uint32_t currentImage) {
+		static double prev = glfwGetTime();
+		double now = glfwGetTime();
+		float dt = float(now - prev);
+		prev = now;
 		static bool debounce = false;
 		static int curDebounce = 0;
 		
@@ -457,7 +536,13 @@ std::cout << "\nLoading the scene\n\n";
 				debounce = true;
 				curDebounce = GLFW_KEY_1;
 
-				debug1.x = 1.0 - debug1.x;
+				//debug1.x = 1.0 - debug1.x;
+				// Example: move card instance 12 from (0,0.75,0) to (0.6,0.75,0.3) in 0.5s
+				cardAnim.startMove(/*techIdx=*/4, /*instIdx=*/0,
+					/*from=*/glm::vec3(0.0f, 0.75f, 0.0f),
+					/*to=*/  glm::vec3(0.6f, 0.75f, 0.3f),
+					/*seconds=*/0.5f);
+
 			}
 		} else {
 			if((curDebounce == GLFW_KEY_1) && debounce) {
@@ -471,7 +556,9 @@ std::cout << "\nLoading the scene\n\n";
 				debounce = true;
 				curDebounce = GLFW_KEY_2;
 
-				debug1.y = 1.0 - debug1.y;
+				//debug1.y = 1.0 - debug1.y;
+				glm::vec3 pivot = glm::vec3(SC.TI[4].I[0].Wm[3]); // extract translation
+				cardAnim.startFlip(4, 0, pivot, 0.4000000f, glm::vec3(0,0,1));
 			}
 		} else {
 			if((curDebounce == GLFW_KEY_2) && debounce) {
@@ -599,11 +686,17 @@ std::cout << "Playing anim: " << curAnim << "\n";
 			SC.TI[3].I[instanceId].DS[0][1]->map(currentImage, &ubos, 0);  // Set 1
 		}
 
+		
 
 		// CARD objects
 		UniformBufferObjectCard ubos2{};
 		for(instanceId = 0; instanceId < SC.TI[4].InstanceCount; instanceId++) {
 			if (!what) std::cout << SC.TI[4].I[instanceId].id;
+			
+			if (cardAnim.active && instanceId == cardAnim.instIdx) {
+				SC.TI[4].I[instanceId].Wm = cardAnim.tick(dt); // update stored matrix
+			}
+
 			ubos2.mMat   = SC.TI[4].I[instanceId].Wm;
 			ubos2.mvpMat = ViewPrj * ubos2.mMat;
 			ubos2.nMat   = glm::inverse(glm::transpose(ubos2.mMat));
