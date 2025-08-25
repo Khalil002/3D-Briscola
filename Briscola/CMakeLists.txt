@@ -33,7 +33,11 @@ if(APPLE)
     file(GLOB_RECURSE HEADERS include/*.h include/*.hpp)
 
     # Define the project executable
-    add_executable(BRISCOLA ${SOURCES} ${HEADERS})
+    add_executable(Briscola ${SOURCES} ${HEADERS}
+            src/card.cpp
+            src/deck.cpp
+            src/player.cpp
+            src/gamecontroller.cpp)
 
     # Include directories
     target_include_directories(BRISCOLA PRIVATE ${GLM_INCLUDE_DIRS})
@@ -95,7 +99,11 @@ elseif(WIN32)
     # Set paths to libraries (modify these based on your SDK and library installation)
     set(GLFW "C:/VulkanSDK/libs/glfw-3.4.bin.WIN64")
     set(GLM "C:/VulkanSDK/libs/glm")
-    set(GLSLANG_VALIDATOR "C:/VulkanSDK/1.4.304.0/Bin/glslangValidator.exe")
+    find_program(GLSLANG_VALIDATOR glslangValidator)
+
+    if(NOT GLSLANG_VALIDATOR)
+        message(FATAL_ERROR "glslangValidator not found in PATH. Please ensure the Vulkan SDK is properly installed.")
+    endif()
 
 
     # List of directories to add to the include path
@@ -151,7 +159,12 @@ elseif(UNIX AND NOT APPLE)
     file(GLOB_RECURSE SOURCES src/*.cpp)
     file(GLOB_RECURSE HEADERS include/*.h include/*.hpp)
 
-    add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
+    add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS}
+            include/card.h
+            include/deck.h
+            include/player.h
+            include/gamecontroller.h)
+
 
     find_package(Vulkan REQUIRED)
     find_package(glfw3 REQUIRED)

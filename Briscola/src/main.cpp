@@ -8,6 +8,7 @@
 #include "modules/Scene.hpp"
 #include "modules/Animations.hpp"
 #include <glm/gtx/quaternion.hpp>
+#include "gamecontroller.h"
 
 std::ostream& operator<<(std::ostream& os, const glm::mat4& mat) {
     for (int row = 0; row < 4; ++row) {
@@ -991,7 +992,9 @@ std::cout << "Playing anim: " << curAnim << "\n";
 // This is the main: probably you do not need to touch this!
 int main() {
     BRISCOLA app;
-
+	GameController game;
+	game.run();
+	
     try {
         app.run();
     } catch (const std::exception& e) {
