@@ -102,6 +102,25 @@ struct CardAnim {
     bool  doFaceSwap = false;
     bool  swapped    = false;
 
+	// Inside CardAnim (you already have decomposeTRS)
+	void startMoveFromCurrent(int tIdx, int iIdx, const glm::mat4& curWm,
+							glm::vec3 to, float seconds) {
+		techIdx = tIdx; instIdx = iIdx;
+
+		glm::vec3 Tcur, Scur; glm::quat Rcur;
+		decomposeTRS(curWm, Tcur, Rcur, Scur);   // keep current flip/orientation
+
+		p0 = Tcur;   p1 = to;                    // animate position only
+		q0 = Rcur;   q1 = Rcur;                  // keep rotation
+		s0 = Scur;   s1 = Scur;                  // keep scale
+
+		duration = seconds;
+		elapsed  = 0.0f;
+		active   = true;
+
+		doFaceSwap = false; swapped = false;
+	}
+
     void startMove(int tIdx, int iIdx, glm::vec3 from, glm::vec3 to, float seconds) {
         techIdx = tIdx; instIdx = iIdx;
         // Extract current rotation/scale from current Wm if you track them separately,
@@ -126,6 +145,49 @@ struct CardAnim {
 
     // Smooth easing
     static float ease(float t){ t = glm::clamp(t,0.0f,1.0f); return t*t*(3.0f - 2.0f*t); }
+
+	static void decomposeTRS(const glm::mat4& M, glm::vec3& T, glm::quat& R, glm::vec3& S) {
+    	// Extract scale as column lengths
+    	glm::vec3 c0 = glm::vec3(M[0]);
+    	glm::vec3 c1 = glm::vec3(M[1]);
+    	glm::vec3 c2 = glm::vec3(M[2]);
+    	S = glm::vec3(glm::length(c0), glm::length(c1), glm::length(c2));
+    	// Guard against zero scale
+    	glm::vec3 invS = glm::vec3(S.x ? 1.f/S.x : 0.f, S.y ? 1.f/S.y : 0.f, S.z ? 1.f/S.z : 0.f);
+    	// Normalize rotation columns
+    	glm::mat3 rotM(
+			c0 * invS.x,
+			c1 * invS.y,
+			c2 * invS.z
+		);
+    	R = glm::quat_cast(rotM);
+    	T = glm::vec3(M[3]);
+    }
+
+	void startFlipFromCurrent(int tIdx, int iIdx, const glm::mat4& curWm,
+						  float seconds, glm::vec3 axis = {0,1,0}, bool localAxis=true) {
+    	techIdx = tIdx; instIdx = iIdx;
+
+    	// Decompose current TRS
+    	glm::vec3 Tcur, Scur;
+    	decomposeTRS(curWm, Tcur, q0, Scur);
+
+    	// Endpoints
+    	p0 = p1 = Tcur;
+    	s0 = s1 = Scur;
+
+    	// Rotate 180° from current rotation
+    	glm::quat dq = glm::angleAxis(glm::pi<float>(), glm::normalize(axis));
+    	q1 = localAxis ? (q0 * dq)    // rotate in LOCAL space
+					   : (dq * q0);   // rotate in WORLD space
+
+    	duration = seconds;
+    	elapsed  = 0.0f;
+    	active   = true;
+
+    	doFaceSwap = true;
+    	swapped = false;
+    }
 
     // Returns current world matrix
     glm::mat4 tick(float dt, glm::mat4 base = glm::mat4(1.0f)) {
@@ -181,6 +243,8 @@ class BRISCOLA : public BaseProject {
 	#define N_ANIMATIONS 5
 
 	bool what = false;
+	bool camSnapped = false;      // toggle with key '9'
+
 	InstanceCard deck[40];
 	AnimBlender AB;
 	Animations Anim[N_ANIMATIONS];
@@ -493,7 +557,17 @@ std::cout << "\nLoading the scene\n\n";
 			Anim[ian].cleanup();
 		}
 	}
-	
+	void printCameraInfo(const glm::vec3 &eye, const glm::vec3 &target) {
+		glm::vec3 dir = glm::normalize(target - eye);
+
+		float yaw   = glm::degrees(atan2(dir.x, dir.z));
+		float pitch = glm::degrees(asin(dir.y));
+
+		std::cout << "Camera Eye: (" 
+				<< eye.x << ", " << eye.y << ", " << eye.z << ")\n"
+				<< "Yaw: " << yaw << " deg, "
+				<< "Pitch: " << pitch << " deg\n";
+	};
 	// Here it is the creation of the command buffer:
 	// You send to the GPU all the objects you want to draw,
 	// with their buffers and textures
@@ -537,11 +611,11 @@ std::cout << "\nLoading the scene\n\n";
 				curDebounce = GLFW_KEY_1;
 
 				//debug1.x = 1.0 - debug1.x;
-				// Example: move card instance 12 from (0,0.75,0) to (0.6,0.75,0.3) in 0.5s
-				cardAnim.startMove(/*techIdx=*/4, /*instIdx=*/0,
-					/*from=*/glm::vec3(0.0f, 0.75f, 0.0f),
-					/*to=*/  glm::vec3(0.6f, 0.75f, 0.3f),
-					/*seconds=*/0.5f);
+				int idx = 0;
+				const glm::mat4 cur = SC.TI[4].I[idx].Wm;
+				cardAnim.startMoveFromCurrent(/*techIdx=*/4, /*instIdx=*/idx, cur,
+											/*to=*/glm::vec3(0.6f, 0.75f, 0.3f),
+											/*seconds=*/1.0f);
 
 			}
 		} else {
@@ -557,8 +631,10 @@ std::cout << "\nLoading the scene\n\n";
 				curDebounce = GLFW_KEY_2;
 
 				//debug1.y = 1.0 - debug1.y;
-				glm::vec3 pivot = glm::vec3(SC.TI[4].I[0].Wm[3]); // extract translation
-				cardAnim.startFlip(4, 0, pivot, 0.4000000f, glm::vec3(0,0,1));
+				int idx = 0;
+				const glm::mat4 cur = SC.TI[4].I[idx].Wm;
+				// Flip around Z (you used {0,0,1}); choose localAxis=true to spin around card’s own axis
+				cardAnim.startFlipFromCurrent(4, idx, cur, 1.0f, glm::vec3(0,0,1), /*localAxis=*/true);
 			}
 		} else {
 			if((curDebounce == GLFW_KEY_2) && debounce) {
@@ -609,6 +685,21 @@ std::cout << "Playing anim: " << curAnim << "\n";
 			}
 		} else {
 			if((curDebounce == GLFW_KEY_SPACE) && debounce) {
+				debounce = false;
+				curDebounce = 0;
+			}
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_9)) {
+			if (!debounce) {
+				debounce = true;
+				curDebounce = GLFW_KEY_9;
+
+				camSnapped = !camSnapped;   // toggle snap mode
+				std::cout << (camSnapped ? "Camera SNAP ON\n" : "Camera SNAP OFF\n");
+			}
+		} else {
+			if ((curDebounce == GLFW_KEY_9) && debounce) {
 				debounce = false;
 				curDebounce = 0;
 			}
@@ -759,6 +850,13 @@ std::cout << "Playing anim: " << curAnim << "\n";
 		getSixAxis(deltaT, m, r, fire);
 		float MOVE_SPEED = fire ? MOVE_SPEED_RUN : MOVE_SPEED_BASE;
 
+		if (camSnapped) {
+			// disable all movement & rotation input
+			m = glm::vec3(0.0f);
+			r = glm::vec3(0.0f);
+		}
+
+
 
 		// Game Logic implementation
 		// Current Player Position - statc variable make sure its value remain unchanged in subsequent calls to the procedure
@@ -783,6 +881,8 @@ std::cout << "Playing anim: " << curAnim << "\n";
 		static float dampedRelDir = glm::radians(0.0f);
 		static glm::vec3 dampedCamPos = StartingPosition;
 		
+		
+
 		// World
 		// Position
 		glm::vec3 ux = glm::rotate(glm::mat4(1.0f), Yaw, glm::vec3(0,1,0)) * glm::vec4(1,0,0,1);
@@ -797,6 +897,20 @@ std::cout << "Playing anim: " << curAnim << "\n";
 		Pitch  =  Pitch < minPitch ? minPitch :
 				   (Pitch > maxPitch ? maxPitch : Pitch);
 
+		// --- force snapped view when camSnapped is ON ---
+		if (camSnapped) {
+			// Lock to a top-down-ish 45° view towards the table
+			Pitch = glm::radians(45.0f);          // look down 45°
+			// keep current Yaw (so you see the table from your current azimuth),
+			// or set a fixed one if you prefer: Yaw = glm::radians(0.0f);
+
+			// lock camera height/distance: use a pleasant overhead distance
+			camHeight = 0.75f;                    // eye height over target (table)
+			camDist   = 3.0f;                     // distance from target
+
+			// no smoothing while snapped: place camera instantly
+			// (we’ll also set dampedCamPos later to cameraPos to remove lag)
+		}
 
 		float ef = exp(-10.0 * deltaT);
 		// Rotational independence from view with damping
@@ -824,6 +938,11 @@ std::cout << "Playing anim: " << curAnim << "\n";
 		// Damping of camera
 		dampedCamPos = ef * dampedCamPos + (1.0f - ef) * cameraPos;
 
+		if (camSnapped) {
+			// kill damping so it snaps; also freeze dampedRelDir if you like
+			dampedCamPos = cameraPos;
+		} 
+
 		glm::mat4 View = glm::lookAt(dampedCamPos, target, glm::vec3(0,1,0));
 
 		ViewPrj = Prj * View;
@@ -843,6 +962,26 @@ std::cout << "Playing anim: " << curAnim << "\n";
 				currRunState = 3;
 			}
 		}
+
+		printCameraInfo(cameraPos, target);
+
+		if (camSnapped) {
+			// Projection
+			glm::mat4 Prj = glm::perspective(glm::radians(45.0f), Ar, 0.1f, 100.0f);
+			Prj[1][1] *= -1;
+
+			// Place camera at some distance above table origin, looking down
+			glm::vec3 eye    = glm::vec3(0.0f, 1.25f, 1.25f); // adjust to taste
+			glm::vec3 target = glm::vec3(0.0f, 0.75f, 0.0f); // table at origin
+			glm::vec3 up     = glm::vec3(0.0f, 1.0f, 0.0f);
+
+			glm::mat4 View = glm::lookAt(eye, target, up);
+			ViewPrj = Prj * View;
+
+			cameraPos = eye;
+			World     = glm::mat4(1.0f); // freeze world if you want
+		}
+
 		
 		return deltaT;
 	}
