@@ -47,11 +47,6 @@ struct VertexTan {
 	glm::vec4 tan;
 };
 
-struct InstanceCard {
-	std::string *id;
-    int cardIndex;   // location = 3
-};
-
 struct GlobalUniformBufferObject {
 	alignas(16) glm::vec3 lightDir;
 	alignas(16) glm::vec4 lightColor;
@@ -246,7 +241,6 @@ class BRISCOLA : public BaseProject {
 	bool what = false;
 	bool camSnapped = false;      // toggle with key '9'
 
-	InstanceCard deck[40];
 	AnimBlender AB;
 	Animations Anim[N_ANIMATIONS];
 	SkeletalAnimation SKA;
@@ -794,7 +788,6 @@ std::cout << "Playing anim: " << curAnim << "\n";
 			ubos2.nMat   = glm::inverse(glm::transpose(ubos2.mMat));
 			ubos2.cardIndex = instanceId;
 
-			deck[instanceId] = {SC.TI[4].I[instanceId].id, instanceId};
 			SC.TI[4].I[instanceId].DS[0][0]->map(currentImage, &gubo, 0); // Set 0
 			SC.TI[4].I[instanceId].DS[0][1]->map(currentImage, &ubos2, 0);  // Set 1
 		}
