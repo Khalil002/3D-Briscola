@@ -33,7 +33,7 @@ if(APPLE)
     file(GLOB_RECURSE HEADERS include/*.h include/*.hpp)
 
     # Define the project executable
-    add_executable(Briscola ${SOURCES} ${HEADERS}
+    add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS}
             src/card.cpp
             src/deck.cpp
             src/player.cpp

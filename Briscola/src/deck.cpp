@@ -22,8 +22,11 @@ Deck::Deck() {
 }
 
 void Deck::shuffle() {
-    std::srand(unsigned(std::time(nullptr)));
-    std::random_shuffle(cards.begin(), cards.end());
+    //std::srand(unsigned(std::time(nullptr)));
+    //std::random_shuffle(cards.begin(), cards.end());
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(cards.begin(), cards.end(), g);
 
     // Ultima carta è la briscola (non rimossa dal mazzo)
     briscola = cards.back();
