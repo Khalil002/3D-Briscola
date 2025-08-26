@@ -9,7 +9,8 @@
 #include "modules/Animations.hpp"
 #include <glm/gtx/quaternion.hpp>
 #include "gamecontroller.h"
-
+//#include <boost/thread.hpp>
+#include <future>
 std::ostream& operator<<(std::ostream& os, const glm::mat4& mat) {
     for (int row = 0; row < 4; ++row) {
         os << "| ";
@@ -78,7 +79,10 @@ struct skyBoxUniformBufferObject {
 	alignas(16) glm::mat4 mvpMat;
 };
 
-
+struct cardInstance {
+	Card card;
+	Instance instance;
+};
 
 struct CardAnim {
     int   techIdx   = 4;          // technique index for cards (SC.TI[4])
@@ -238,9 +242,8 @@ class BRISCOLA : public BaseProject {
 	// To support animation
 	#define N_ANIMATIONS 5
 
-	bool what = false;
-	bool camSnapped = false;      // toggle with key '9'
-
+	bool camSnapped = true;      // toggle with key '9'
+	bool newGame;
 	AnimBlender AB;
 	Animations Anim[N_ANIMATIONS];
 	SkeletalAnimation SKA;
@@ -248,7 +251,11 @@ class BRISCOLA : public BaseProject {
 	// Card Animation
 	CardAnim cardAnim;
 
-	
+	// Briscola game controller
+	GameController gc;
+
+	//Card to instance mapping
+	cardInstance cardInstances[40];
 
 	// to provide textual feedback
 	TextMaker txt;
@@ -494,6 +501,8 @@ std::cout << "\nLoading the scene\n\n";
 		// submits the main command buffer
 		submitCommandBuffer("main", 0, populateCommandBufferAccess, this);
 
+		gc.run();
+		newGame = true;
 		// Prepares for showing the FPS count
 		txt.print(1.0f, 1.0f, "FPS:",1,"CO",false,false,true,TAL_RIGHT,TRH_RIGHT,TRV_BOTTOM,{1.0f,0.0f,0.0f,1.0f},{0.8f,0.8f,0.0f,1.0f});
 	}
@@ -551,8 +560,10 @@ std::cout << "\nLoading the scene\n\n";
 		for(int ian = 0; ian < N_ANIMATIONS; ian++) {
 			Anim[ian].cleanup();
 		}
+
+		//gc.stop();
 	}
-	
+
 	void printCameraInfo(const glm::vec3 &eye, const glm::vec3 &target) {
 		glm::vec3 dir = glm::normalize(target - eye);
 
@@ -749,7 +760,6 @@ std::cout << "Playing anim: " << curAnim << "\n";
 		UniformBufferObjectSimp ubos{};	
 		// normal objects
 		for(instanceId = 0; instanceId < SC.TI[1].InstanceCount; instanceId++) {
-			if (!what) std::cout << SC.TI[1].I[instanceId].Wm;
 			ubos.mMat   = SC.TI[1].I[instanceId].Wm;
 			ubos.mvpMat = ViewPrj * ubos.mMat;
 			ubos.nMat   = glm::inverse(glm::transpose(ubos.mMat));
@@ -774,13 +784,27 @@ std::cout << "Playing anim: " << curAnim << "\n";
 		}
 
 		// CARD objects
+		if(newGame) {
+			glm::vec3 basePos(-0.177f, 0.563f, 0.0f);
+			std::vector<Card> cards = gc.getDeck();
+			float i = 0.0f;
+			for(int j = cards.size() - 1; j >= 0; --j) {
+				float yOffset = 0.00025f * i;
+				glm::vec3 pos = basePos + glm::vec3(0.0f, yOffset, 0.0f);
+				glm::mat4 rot = glm::rotate(glm::mat4(1.0f),
+											glm::radians(180.0f),
+											glm::vec3(1.0f, 0.0f, 0.0f));
+				SC.TI[4].I[cards[j].id].Wm = glm::translate(glm::mat4(1.0f), pos) * rot;
+				i=i+1.0f;
+			}
+			newGame = false;
+		}
+		if (cardAnim.active) {
+			SC.TI[4].I[cardAnim.instIdx].Wm = cardAnim.tick(dt); // update stored matrix
+		}
+
 		UniformBufferObjectCard ubos2{};
 		for(instanceId = 0; instanceId < SC.TI[4].InstanceCount; instanceId++) {
-			if (!what) std::cout << SC.TI[4].I[instanceId].id;
-			
-			if (cardAnim.active && instanceId == cardAnim.instIdx) {
-				SC.TI[4].I[instanceId].Wm = cardAnim.tick(dt); // update stored matrix
-			}
 
 			ubos2.mMat   = SC.TI[4].I[instanceId].Wm;
 			ubos2.mvpMat = ViewPrj * ubos2.mMat;
@@ -790,10 +814,6 @@ std::cout << "Playing anim: " << curAnim << "\n";
 			SC.TI[4].I[instanceId].DS[0][0]->map(currentImage, &gubo, 0); // Set 0
 			SC.TI[4].I[instanceId].DS[0][1]->map(currentImage, &ubos2, 0);  // Set 1
 		}
-
-
-
-		what = true;
 
 		// updates the FPS
 		static float elapsedT = 0.0f;
@@ -958,7 +978,7 @@ std::cout << "Playing anim: " << curAnim << "\n";
 			}
 		}
 
-		printCameraInfo(cameraPos, target);
+		//printCameraInfo(cameraPos, target);
 
 		if (camSnapped) {
 			// Projection
@@ -966,8 +986,8 @@ std::cout << "Playing anim: " << curAnim << "\n";
 			Prj[1][1] *= -1;
 
 			// Place camera at some distance above table origin, looking down
-			glm::vec3 eye    = glm::vec3(0.0f, 1.25f, 1.25f); // adjust to taste
-			glm::vec3 target = glm::vec3(0.0f, 0.75f, 0.0f); // table at origin
+			glm::vec3 eye    = glm::vec3(0.0f, 1.0f, 0.75f); // adjust to taste
+			glm::vec3 target = glm::vec3(0.0f, 0.5625f, 0.0f); // table at origin
 			glm::vec3 up     = glm::vec3(0.0f, 1.0f, 0.0f);
 
 			glm::mat4 View = glm::lookAt(eye, target, up);
@@ -986,9 +1006,7 @@ std::cout << "Playing anim: " << curAnim << "\n";
 // This is the main: probably you do not need to touch this!
 int main() {
     BRISCOLA app;
-	GameController game;
-	game.run();
-	
+
     try {
         app.run();
     } catch (const std::exception& e) {

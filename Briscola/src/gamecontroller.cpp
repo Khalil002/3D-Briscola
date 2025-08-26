@@ -3,22 +3,40 @@
 #include <cstdlib>
 #include <ctime>
 
+/*
+void GameController::start() {
+    if (worker.joinable()) return;                  // already running
+    stopRequested.store(false, std::memory_order_relaxed);
+    worker = std::thread(&GameController::run, this);
+}
+
+void GameController::stop() {
+    stopRequested.store(true, std::memory_order_relaxed);
+    if (worker.joinable()) worker.join();
+}*/
+
+//GameController::~GameController() { stop(); }
+
+std::vector<Card> GameController::getDeck(){
+    return deck.getCards();
+}
+
 void GameController::run() {
     std::srand(std::time(nullptr));
     deck.shuffle();
     briscola = deck.getBriscola();
     isPlayerTurn = true;
 
-    dealInitialCards();
+    //dealInitialCards();
 
     std::cout << "Welcome to Briscola!\n";
     std::cout << "Briscola suit: " << briscola.toString() << "\n\n";
 
-    while (player.HasCards() || !deck.empty()) {
+    /**while (player.HasCards() || !deck.empty()) {
         playTurn();
     }
 
-    displayFinalResult();
+    displayFinalResult();**/
 }
 
 void GameController::dealInitialCards() {
@@ -28,8 +46,8 @@ void GameController::dealInitialCards() {
     }
 }
 
-void GameController::playTurn() {
-    std::cout << "\n--- New Round ---\n";
+void GameController::playTurn(int choice) {
+    /**std::cout << "\n--- New Round ---\n";
     player.ShowHand();
 
     int choice;
@@ -42,7 +60,8 @@ void GameController::playTurn() {
         std::cin >> choice;
     }
 
-    Card playerCard = player.PlayCard(choice - 1);
+    Card playerCard = player.PlayCard(choice - 1);**/
+    Card playerCard = player.PlayCard(choice);
     int cpuChoice = std::rand() % cpu.hand.size();
     Card cpuCard = cpu.PlayCard(cpuChoice);
 

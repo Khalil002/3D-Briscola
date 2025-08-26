@@ -13,4 +13,5 @@ public:
     Card draw();
     bool empty() const;
     Card getBriscola() const;
+    std::vector<Card> getCards();
 };

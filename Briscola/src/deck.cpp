@@ -5,6 +5,7 @@
 #include <stdexcept>
 
 Deck::Deck() {
+    int id = 0;
     for (int s = 0; s < 4; ++s) {
         for (int v = 1; v <= 10; ++v) {
             int points = 0;
@@ -15,8 +16,9 @@ Deck::Deck() {
             else if (v == 8) points = 2;   // Fante/Knave
             else points = 0;               // Other cards
 
-            Card c = { static_cast<Suit>(s), v, points };
+            Card c = { static_cast<Suit>(s), v, points, id};
             cards.push_back(c);
+            id++;
         }
     }
 }
@@ -49,4 +51,8 @@ Card Deck::getBriscola() const {
     return briscola;
 
 
+}
+
+std::vector<Card> Deck::getCards(){
+    return cards;
 }
