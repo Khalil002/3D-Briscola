@@ -552,6 +552,7 @@ std::cout << "\nLoading the scene\n\n";
 			Anim[ian].cleanup();
 		}
 	}
+	
 	void printCameraInfo(const glm::vec3 &eye, const glm::vec3 &target) {
 		glm::vec3 dir = glm::normalize(target - eye);
 
@@ -772,8 +773,6 @@ std::cout << "Playing anim: " << curAnim << "\n";
 			SC.TI[3].I[instanceId].DS[0][1]->map(currentImage, &ubos, 0);  // Set 1
 		}
 
-		
-
 		// CARD objects
 		UniformBufferObjectCard ubos2{};
 		for(instanceId = 0; instanceId < SC.TI[4].InstanceCount; instanceId++) {
@@ -791,6 +790,8 @@ std::cout << "Playing anim: " << curAnim << "\n";
 			SC.TI[4].I[instanceId].DS[0][0]->map(currentImage, &gubo, 0); // Set 0
 			SC.TI[4].I[instanceId].DS[0][1]->map(currentImage, &ubos2, 0);  // Set 1
 		}
+
+
 
 		what = true;
 
