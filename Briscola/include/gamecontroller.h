@@ -12,10 +12,14 @@ public:
     //void start();
     //void stop();
     void dealInitialCards();
-    void playTurn(int choice);
+    bool playTurn(int choice, int cpuChoice);
     void displayFinalResult();
     bool beats(const Card& first, const Card& second, Suit briscolaSuit, Suit playedSuit);
     std::vector<Card> getDeck();
+    int getCpuHandSize();
+    int getPlayerHandSize();
+    bool IsPlayerTurn();
+    void drawCards(bool isPlayerTurn);
 private:
     //~GameController();
     Deck deck;

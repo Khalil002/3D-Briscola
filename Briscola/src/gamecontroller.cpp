@@ -21,6 +21,18 @@ std::vector<Card> GameController::getDeck(){
     return deck.getCards();
 }
 
+int GameController::getCpuHandSize(){
+    return cpu.hand.size();
+}
+
+int GameController::getPlayerHandSize(){
+    return player.hand.size();
+}
+
+bool GameController::IsPlayerTurn(){
+    return isPlayerTurn;
+}
+
 void GameController::run() {
     std::srand(std::time(nullptr));
     deck.shuffle();
@@ -44,9 +56,11 @@ void GameController::dealInitialCards() {
         player.DrawFromDeck(deck);
         cpu.DrawFromDeck(deck);
     }
+    player.ShowHand();
+    cpu.ShowHand();
 }
 
-void GameController::playTurn(int choice) {
+bool GameController::playTurn(int choice, int cpuChoice) {
     /**std::cout << "\n--- New Round ---\n";
     player.ShowHand();
 
@@ -60,9 +74,9 @@ void GameController::playTurn(int choice) {
         std::cin >> choice;
     }
 
-    Card playerCard = player.PlayCard(choice - 1);**/
+    //Card playerCard = player.PlayCard(choice - 1);**/
     Card playerCard = player.PlayCard(choice);
-    int cpuChoice = std::rand() % cpu.hand.size();
+    //int cpuChoice = std::rand() % cpu.hand.size();
     Card cpuCard = cpu.PlayCard(cpuChoice);
 
     std::cout << "You played: " << playerCard.toString() << "\n";
@@ -93,17 +107,20 @@ void GameController::playTurn(int choice) {
         isPlayerTurn = false;
     }
 
-    if (!deck.empty()) {
-        if (isPlayerTurn) {
-            player.DrawFromDeck(deck);
-            cpu.DrawFromDeck(deck);
-        } else {
-            cpu.DrawFromDeck(deck);
-            player.DrawFromDeck(deck);
-        }
-    }
+    //drawCards(isPlayerTurn);
 
     std::cout << "Score — You: " << player.points << " | CPU: " << cpu.points << "\n";
+    return playerWins;
+}
+
+void GameController::drawCards(bool isPlayerTurn){
+    if (isPlayerTurn) {
+        player.DrawFromDeck(deck);
+        cpu.DrawFromDeck(deck);
+    } else {
+        cpu.DrawFromDeck(deck);
+        player.DrawFromDeck(deck);
+    }
 }
 
 void GameController::displayFinalResult() {

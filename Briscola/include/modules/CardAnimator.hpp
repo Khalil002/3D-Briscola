@@ -50,6 +50,17 @@ public:
     t.queue.push_back(s);
   }
 
+  void addGlobalWait(float seconds) {
+    float duration = dur(seconds);
+    for (auto& kv : tracks) {
+      Track& t = kv.second;
+      // ensure the track is initialized so wait step makes sense
+      glm::mat4 cur = getMatrix(t.idx);
+      Step s; s.type = Step::WAIT; s.wait.dur = duration;
+      t.queue.push_back(s);
+    }
+  }
+
   // Advance all tracks
   void tick(float dt) {
     for (auto& kv : tracks) {
