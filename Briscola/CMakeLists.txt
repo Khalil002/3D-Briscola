@@ -163,7 +163,8 @@ elseif(UNIX AND NOT APPLE)
             include/card.h
             include/deck.h
             include/player.h
-            include/gamecontroller.h)
+            include/gamecontroller.h
+            include/modules/CardAnimator.hpp)
 
 
     find_package(Vulkan REQUIRED)

@@ -10,8 +10,10 @@
 #include <glm/gtx/quaternion.hpp>
 #include "gamecontroller.h"
 //#include <boost/thread.hpp>
-#include <future>
-std::ostream& operator<<(std::ostream& os, const glm::mat4& mat) {
+#include <stack>
+#include "modules/CardAnimator.hpp"
+
+/**std::ostream& operator<<(std::ostream& os, const glm::mat4& mat) {
     for (int row = 0; row < 4; ++row) {
         os << "| ";
         for (int col = 0; col < 4; ++col) {
@@ -20,7 +22,7 @@ std::ostream& operator<<(std::ostream& os, const glm::mat4& mat) {
         os << "|\n";
     }
     return os;
-}
+}**/
 
 // The uniform buffer object used in this example
 struct VertexChar {
@@ -79,140 +81,6 @@ struct skyBoxUniformBufferObject {
 	alignas(16) glm::mat4 mvpMat;
 };
 
-struct cardInstance {
-	Card card;
-	Instance instance;
-};
-
-struct CardAnim {
-    int   techIdx   = 4;          // technique index for cards (SC.TI[4])
-    int   instIdx   = 0;          // which card instance
-    bool  active    = false;
-
-    // timing
-    float duration  = 0.6f;       // seconds
-    float elapsed   = 0.0f;
-
-    // transform endpoints
-    glm::vec3 p0{}, p1{};
-    glm::quat q0{1,0,0,0}, q1{1,0,0,0};
-    glm::vec3 s0{1,1,1}, s1{1,1,1};
-
-    // optional: flip mid‑way (e.g., change cardIndex at 50%)
-    bool  doFaceSwap = false;
-    bool  swapped    = false;
-
-	// Inside CardAnim (you already have decomposeTRS)
-	void startMoveFromCurrent(int tIdx, int iIdx, const glm::mat4& curWm,
-							glm::vec3 to, float seconds) {
-		techIdx = tIdx; instIdx = iIdx;
-
-		glm::vec3 Tcur, Scur; glm::quat Rcur;
-		decomposeTRS(curWm, Tcur, Rcur, Scur);   // keep current flip/orientation
-
-		p0 = Tcur;   p1 = to;                    // animate position only
-		q0 = Rcur;   q1 = Rcur;                  // keep rotation
-		s0 = Scur;   s1 = Scur;                  // keep scale
-
-		duration = seconds;
-		elapsed  = 0.0f;
-		active   = true;
-
-		doFaceSwap = false; swapped = false;
-	}
-
-    void startMove(int tIdx, int iIdx, glm::vec3 from, glm::vec3 to, float seconds) {
-        techIdx = tIdx; instIdx = iIdx;
-        // Extract current rotation/scale from current Wm if you track them separately,
-        // else assume identity rotation/scale for a simple slide.
-        p0 = from; p1 = to;
-        q0 = glm::quat(1,0,0,0); q1 = q0;
-        s0 = s1 = glm::vec3(1.0f);
-        duration = seconds; elapsed = 0.0f; active = true;
-        doFaceSwap = swapped = false;
-    }
-
-    void startFlip(int tIdx, int iIdx, glm::vec3 pivot, float seconds, glm::vec3 axis = {0,1,0}) {
-        techIdx = tIdx; instIdx = iIdx;
-        // Keep position, scale fixed; animate rotation 0..pi about local axis at pivot
-        p0 = p1 = pivot;
-        q0 = glm::quat(1,0,0,0);
-        q1 = glm::angleAxis(glm::pi<float>(), glm::normalize(axis)); // 180°
-        s0 = s1 = glm::vec3(1.0f);
-        duration = seconds; elapsed = 0.0f; active = true;
-        doFaceSwap = true; swapped = false;
-    }
-
-    // Smooth easing
-    static float ease(float t){ t = glm::clamp(t,0.0f,1.0f); return t*t*(3.0f - 2.0f*t); }
-
-	static void decomposeTRS(const glm::mat4& M, glm::vec3& T, glm::quat& R, glm::vec3& S) {
-    	// Extract scale as column lengths
-    	glm::vec3 c0 = glm::vec3(M[0]);
-    	glm::vec3 c1 = glm::vec3(M[1]);
-    	glm::vec3 c2 = glm::vec3(M[2]);
-    	S = glm::vec3(glm::length(c0), glm::length(c1), glm::length(c2));
-    	// Guard against zero scale
-    	glm::vec3 invS = glm::vec3(S.x ? 1.f/S.x : 0.f, S.y ? 1.f/S.y : 0.f, S.z ? 1.f/S.z : 0.f);
-    	// Normalize rotation columns
-    	glm::mat3 rotM(
-			c0 * invS.x,
-			c1 * invS.y,
-			c2 * invS.z
-		);
-    	R = glm::quat_cast(rotM);
-    	T = glm::vec3(M[3]);
-    }
-
-	void startFlipFromCurrent(int tIdx, int iIdx, const glm::mat4& curWm,
-						  float seconds, glm::vec3 axis = {0,1,0}, bool localAxis=true) {
-    	techIdx = tIdx; instIdx = iIdx;
-
-    	// Decompose current TRS
-    	glm::vec3 Tcur, Scur;
-    	decomposeTRS(curWm, Tcur, q0, Scur);
-
-    	// Endpoints
-    	p0 = p1 = Tcur;
-    	s0 = s1 = Scur;
-
-    	// Rotate 180° from current rotation
-    	glm::quat dq = glm::angleAxis(glm::pi<float>(), glm::normalize(axis));
-    	q1 = localAxis ? (q0 * dq)    // rotate in LOCAL space
-					   : (dq * q0);   // rotate in WORLD space
-
-    	duration = seconds;
-    	elapsed  = 0.0f;
-    	active   = true;
-
-    	doFaceSwap = true;
-    	swapped = false;
-    }
-
-    // Returns current world matrix
-    glm::mat4 tick(float dt, glm::mat4 base = glm::mat4(1.0f)) {
-        if(!active) return base;
-        elapsed += dt;
-        float u = ease(elapsed / duration);
-        glm::vec3 p = glm::mix(p0, p1, u);
-        glm::quat q = glm::slerp(q0, q1, u);
-        glm::vec3 s = glm::mix(s0, s1, u);
-
-        // swap face (e.g., change cardIndex) at halfway of a flip
-        if(doFaceSwap && !swapped && u >= 0.5f){
-            // Example: toggle the instance's card index (front value) here if you want
-            // SC.TI[techIdx].I[instIdx].cardIndex = newIndex;
-            swapped = true;
-        }
-
-        glm::mat4 T = glm::translate(glm::mat4(1.0f), p);
-        glm::mat4 R = glm::mat4_cast(q);
-        glm::mat4 S = glm::scale(glm::mat4(1.0f), s);
-        if(elapsed >= duration){ active = false; }
-        return T * R * S;
-    }
-};
-
 // MAIN !
 class BRISCOLA : public BaseProject {
 	protected:
@@ -248,15 +116,9 @@ class BRISCOLA : public BaseProject {
 	Animations Anim[N_ANIMATIONS];
 	SkeletalAnimation SKA;
 
-	// Card Animation
-	CardAnim cardAnim;
-
 	// Briscola game controller
 	GameController gc;
-
-	//Card to instance mapping
-	cardInstance cardInstances[40];
-
+	std::unique_ptr<CardAnimator> ca;
 	// to provide textual feedback
 	TextMaker txt;
 	
@@ -503,6 +365,14 @@ std::cout << "\nLoading the scene\n\n";
 
 		gc.run();
 		newGame = true;
+		// Create once (e.g., in BRISCOLA::localInit after SC is ready)
+		ca = std::make_unique<CardAnimator>(
+			[this](int idx, const glm::mat4& M){ SC.TI[4].I[idx].Wm = M; },
+			[this](int idx){ return SC.TI[4].I[idx].Wm; }
+		);
+
+// Or run multiple cards at once by calling again with different idx.
+
 		// Prepares for showing the FPS count
 		txt.print(1.0f, 1.0f, "FPS:",1,"CO",false,false,true,TAL_RIGHT,TRH_RIGHT,TRV_BOTTOM,{1.0f,0.0f,0.0f,1.0f},{0.8f,0.8f,0.0f,1.0f});
 	}
@@ -618,12 +488,17 @@ std::cout << "\nLoading the scene\n\n";
 				curDebounce = GLFW_KEY_1;
 
 				//debug1.x = 1.0 - debug1.x;
-				int idx = 0;
-				const glm::mat4 cur = SC.TI[4].I[idx].Wm;
-				cardAnim.startMoveFromCurrent(/*techIdx=*/4, /*instIdx=*/idx, cur,
-											/*to=*/glm::vec3(0.6f, 0.75f, 0.3f),
-											/*seconds=*/1.0f);
-
+				//int idx = 0;
+				//const glm::mat4 cur = SC.TI[4].I[idx].Wm;
+				/*cardAnim.startMoveFromCurrent(4, idx, cur,
+											glm::vec3(0.6f, 0.75f, 0.3f),
+											1.0f);*/
+				
+				// Another card at the same time:
+				int id2 = 7;
+				glm::mat4 cur2 = SC.TI[4].I[id2].Wm;
+				ca->addRotate(id2, cur2, 180.0f, glm::vec3(0,0,1), 0.5f, true);
+				ca->addMove  (id2, cur2, glm::vec3(-0.05f, 0.563f, 0.02f), 0.5f);
 			}
 		} else {
 			if((curDebounce == GLFW_KEY_1) && debounce) {
@@ -641,7 +516,7 @@ std::cout << "\nLoading the scene\n\n";
 				int idx = 0;
 				const glm::mat4 cur = SC.TI[4].I[idx].Wm;
 				// Flip around Z (you used {0,0,1}); choose localAxis=true to spin around card’s own axis
-				cardAnim.startFlipFromCurrent(4, idx, cur, 1.0f, glm::vec3(0,0,1), /*localAxis=*/true);
+				//cardAnim.startFlipFromCurrent(4, idx, cur, 1.0f, glm::vec3(0,0,1), /*localAxis=*/true);
 			}
 		} else {
 			if((curDebounce == GLFW_KEY_2) && debounce) {
@@ -791,17 +666,57 @@ std::cout << "Playing anim: " << curAnim << "\n";
 			for(int j = cards.size() - 1; j >= 0; --j) {
 				float yOffset = 0.00025f * i;
 				glm::vec3 pos = basePos + glm::vec3(0.0f, yOffset, 0.0f);
-				glm::mat4 rot = glm::rotate(glm::mat4(1.0f),
-											glm::radians(180.0f),
-											glm::vec3(1.0f, 0.0f, 0.0f));
-				SC.TI[4].I[cards[j].id].Wm = glm::translate(glm::mat4(1.0f), pos) * rot;
+				glm::mat4 cur = SC.TI[4].I[cards[j].id].Wm;
+				ca->addRotate(cards[j].id, cur, 180.0f, glm::vec3(1,0,0), 0.0f, /*localAxis=*/false);
+				ca->addMove  (cards[j].id, cur, pos, 0.0f);
+				//ca->addRotate(cards[j].id, cur, 180.0f, glm::vec3(0,0,1), 0.0f, true);
+				
 				i=i+1.0f;
+				//glm::mat4 rot = glm::rotate(glm::mat4(1.0f),
+				//	glm::radians(180.0f),
+				//	glm::vec3(1.0f, 0.0f, 0.0f));
+				//SC.TI[4].I[cards[j].id].Wm = glm::translate(glm::mat4(1.0f), pos) * rot;
+				
 			}
 			newGame = false;
+
+			int id = cards.back().id; // whichever card instance you want
+			glm::mat4 cur = SC.TI[4].I[id].Wm;
+			// Example: move → wait → rotate → move → rotate ...
+			//ca->addRotate(id, cur, 90.0f, glm::vec3(0,1,0), 0.8f, /*localAxis=*/false);
+			ca->addMove  (id, cur, glm::vec3(0.0f, 0.563f, 0.0f), 0.8f);
+
+			//combine these 2
+			//ca->addMove  (id, cur, glm::vec3(0.0f, 0.573f, 0.0f), 0.8f);
+			//ca->addRotate(id, cur, 180.0f, glm::vec3(0,0,1), 0.8f, /*localAxis=*/true);
+			ca->addMoveAndRotate(
+				id, 
+				cur,
+				glm::vec3(0.0f, 0.593f, 0.0f),
+				0.4f,
+				180.0f, glm::vec3(0,0,1),
+				0.8f,
+				false
+			);
+			ca->addMoveAndRotate(
+				id,
+				cur,
+				glm::vec3(-0.16f, 0.563f, 0.0f),
+				0.8f,
+				90.0f, glm::vec3(0,1, 0),
+				0.8f,
+				false
+			);
+			
+			//ca->addMove  (id, cur, glm::vec3(-0.16f, 0.563f, 0.0f), 0.6f);
+			
+			
 		}
-		if (cardAnim.active) {
+
+		if (ca) ca->tick(dt);
+		/**if (cardAnim.active) {
 			SC.TI[4].I[cardAnim.instIdx].Wm = cardAnim.tick(dt); // update stored matrix
-		}
+		}*/
 
 		UniformBufferObjectCard ubos2{};
 		for(instanceId = 0; instanceId < SC.TI[4].InstanceCount; instanceId++) {
