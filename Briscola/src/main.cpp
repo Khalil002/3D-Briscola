@@ -735,6 +735,7 @@ std::cout << "\nLoading the scene\n\n";
 
 		if(gc.getDeck().size() == 0 && gc.getPlayerHandSize() == 0) {
 			gameOver = true;
+			gc.displayFinalResult();
 			return;
 		}
 
