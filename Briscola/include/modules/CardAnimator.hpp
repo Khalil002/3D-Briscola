@@ -61,6 +61,52 @@ public:
     }
   }
 
+    // True if the card has NO pending steps and is not mid-step.
+  bool isFinished(int idx) const {
+    auto it = tracks.find(idx);
+    if (it == tracks.end()) return true;                  // no track → nothing queued
+    const Track& t = it->second;
+    // finished if not active or we've advanced past the last queued step
+    return !t.active || t.cur >= t.queue.size();
+  }
+
+  // Convenience: returns how many steps remain (0 means finished).
+  size_t remainingSteps(int idx) const {
+    auto it = tracks.find(idx);
+    if (it == tracks.end()) return 0;
+    const Track& t = it->second;
+    if (t.cur >= t.queue.size()) return 0;
+    return t.queue.size() - t.cur - (t.stepStarted ? 0 : 0); // queued minus current index
+  }
+
+  // Any card still animating?
+  bool anyAnimating() const {
+    for (const auto& kv : tracks) {
+      const Track& t = kv.second;
+      if (t.active && t.cur < t.queue.size()) return true;
+    }
+    return false;
+  }
+
+  // Optional: percent (0..1) of the current step for a card; -1 if idle/finished.
+  float currentStepProgress(int idx) const {
+    auto it = tracks.find(idx);
+    if (it == tracks.end()) return -1.f;
+    const Track& t = it->second;
+    if (!t.active || t.cur >= t.queue.size()) return -1.f;
+
+    const Step& st = t.queue[t.cur];
+    float dur = 0.f;
+    switch (st.type) {
+      case Step::WAIT:        dur = st.wait.dur; break;
+      case Step::MOVE:        dur = st.move.dur; break;
+      case Step::ROTATE:      dur = st.rot.dur;  break;
+      case Step::MOVE_ROTATE: dur = std::max(st.move.dur, st.rot.dur); break;
+    }
+    if (dur <= 0.f) return 1.f;
+    return std::min(1.f, t.elapsed / dur);
+  }
+
   // Advance all tracks
   void tick(float dt) {
     for (auto& kv : tracks) {

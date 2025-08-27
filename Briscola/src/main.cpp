@@ -125,6 +125,7 @@ class BRISCOLA : public BaseProject {
 	std::vector<Card> playerPile;
 	std::vector<Card> cpuPile;
 	int cpuChoice;
+	int cpuCardId;
 	bool playerFirst;
 
 	std::unique_ptr<CardAnimator> ca;
@@ -375,6 +376,8 @@ std::cout << "\nLoading the scene\n\n";
 		gc.run();
 		newGame = true;
 		playerFirst = true;
+		cpuChoice = 0;
+		cpuCardId = 0;
 
 		// Create once (e.g., in BRISCOLA::localInit after SC is ready)
 		ca = std::make_unique<CardAnimator>(
@@ -497,36 +500,37 @@ std::cout << "\nLoading the scene\n\n";
 	}
 	void moveToCenter(bool isPlayer, int id1, const glm::mat4& cur1) {
 		float p = isPlayer ? 1.0f : -1.0f;
-		glm::vec3 tableCenter(0.0f, 0.563f, 0.0f);
+		float y = isPlayer ? 0.56325f : 0.563f;
+		glm::vec3 tableCenter(0.0f, y, 0.0f);
 		ca->addMoveAndRotate(
 			id1,
 			cur1,
-			tableCenter + randomOffset(0.5f),
+			tableCenter,
 			0.8f,
 			-90.0f*p, glm::vec3(1,0,0),
 			0.8f,
 			false
 		);
-		ca->addGlobalWait(0.5f);
+		//ca->addGlobalWait(0.5f);
 	}
 
 	void moveToCenterBoth(bool isPlayer, int id1, const glm::mat4& cur1, int id2, const glm::mat4& cur2){
 		float p = isPlayer ? 1.0f : -1.0f;
-		glm::vec3 tableCenter(0.0f, 0.563f, 0.0f);
+		//glm::vec3 tableCenter(0.0f, 0.563f, 0.0f);
 		ca->addMoveAndRotate(
 			id1,
 			cur1,
-			tableCenter ,
+			glm::vec3(0.0f, 0.563f, 0.0f) ,
 			0.8f,
 			-90.0f*p, glm::vec3(1,0,0),
 			0.8f,
 			false
 		);
-		ca->addGlobalWait(0.5f);
+		//ca->addGlobalWait(0.5f);
 		ca->addMoveAndRotate(
 			id2,
 			cur2,
-			tableCenter + glm::vec3(0.0f, 0.00025f, 0.0f),
+			glm::vec3(0.0f, 0.56325f, 0.0f),
 			0.8f,
 			90.0f*p, glm::vec3(1,0,0),
 			0.8f,
@@ -536,43 +540,10 @@ std::cout << "\nLoading the scene\n\n";
 
 	void moveToPile(std::vector<Card> pile, glm::vec3 pilePos, int id1, const glm::mat4& cur1, int id2, const glm::mat4& cur2){
 		float pileSpacing = 0.00025f;
-		float pileTop = 0.563f+pile.size()*pileSpacing;
-		ca->addMove(id1, cur1, glm::vec3(0.0f, pileTop + pileSpacing, 0.0f) + randomOffset(0.5f), 0.8f);
-		ca->addMove(id2, cur2, glm::vec3(0.0f, pileTop + pileSpacing, 0.0f) + randomOffset(0.5f), 0.8f);
+		float pileTop = pile.size()*pileSpacing;
+		ca->addMove(id1, cur1, pilePos + glm::vec3(0.0f, pileTop + pileSpacing, 0.0f), 0.8f);
+		ca->addMove(id2, cur2, pilePos + glm::vec3(0.0f, pileTop + pileSpacing, 0.0f), 0.8f);
 	}
-
-	/*void sortHand(bool isPlayer, int choice) {
-		if (choice == 2) return;
-		float p = -1.0f;
-		if (isPlayer) p = 1.0f;
-		float offset = 0.06325f;
-		int id;
-		glm::mat4 cur;
-		if (choice == 1) {
-			id = playerCards.at(2).id;
-			cur = SC.TI[4].I[id].Wm;
-			ca->addMove  (id, cur, glm::vec3(0, 0.75f, 0.5f*p), 0.8f);
-			if(isPlayer){
-				playerCards.at(2) = playerCards.at(1);
-			}else{
-				cpuCards.at(2) = cpuCards.at(1);
-			}
-			return;
-		}
-		id = playerCards.at(1).id;
-		cur = SC.TI[4].I[id].Wm;
-		ca->addMove  (id, cur, glm::vec3(-offset*p, 0.75f, 0.5f*p), 0.8f);
-		id = playerCards.at(2).id;
-		cur = SC.TI[4].I[id].Wm;
-		ca->addMove  (id, cur, glm::vec3(0, 0.75f, 0.5f*p), 0.8f);
-		if(isPlayer){
-			playerCards.at(0) = playerCards.at(1);
-			playerCards.at(1) = playerCards.at(2);
-		}else{
-			cpuCards.at(0) = cpuCards.at(1);
-			cpuCards.at(1) = cpuCards.at(2);
-		}
-	}*/
 
 	void sortHand(bool isPlayer, int choice) {
 		auto& hand = isPlayer ? playerCards : cpuCards;
@@ -620,25 +591,63 @@ std::cout << "\nLoading the scene\n\n";
 		}
 		int id = c.id;
 		glm::mat4 cur =  SC.TI[4].I[id].Wm;
-		ca->addMoveAndRotate(
+		if(c.id != cards.back().id){
+			if(isPlayer){
+				ca->addMoveAndRotate(
 					id,
 					cur,
-					glm::vec3(0.0f, 0.563f, 0.2f),
+					glm::vec3(0.0f, 0.563f, 0.2f*p),
 					0.8f,
 					180.0f, glm::vec3(0,1, 0),
 					0.8f,
 					false
 				);
-		ca->addMoveAndRotate(
-			id,
-			cur,
-			glm::vec3(offset*p, 0.75f, 0.5f*p),
-			0.8f,
-			-90.0f, glm::vec3(1,0, 0),
-			0.8f,
-			false
-		);
-		ca->addGlobalWait(3.0f);
+			}else{
+				ca->addMoveAndRotate(
+					id,
+					cur,
+					glm::vec3(0.0f, 0.563f, 0.2f*p),
+					0.8f,
+					0.0f, glm::vec3(0,1, 0),
+					0.8f,
+					false
+				);
+			}
+				ca->addMoveAndRotate(
+					id,
+					cur,
+					glm::vec3(offset*p, 0.75f, 0.5f*p),
+					0.8f,
+					-90.0f*p, glm::vec3(1,0, 0),
+					0.8f,
+					false
+				);
+		}else{
+			if(isPlayer){
+				ca->addRotate(id, cur, 90.0f, glm::vec3(0,1,0), 0.8f, false);
+			}
+			ca->addMoveAndRotate(
+					id,
+					cur,
+					glm::vec3(0.0f, 0.563f, 0.2f*p),
+					0.8f,
+					0.0f, glm::vec3(0,1, 0),
+					0.8f,
+					false
+				);
+			ca->addMoveAndRotate(
+				id,
+				cur,
+				glm::vec3(offset*p, 0.75f, 0.5f*p),
+				0.8f,
+				-90.0f*p, glm::vec3(1,0, 0),
+				0.8f,
+				false
+			);
+		}
+		
+		
+		//ca->addGlobalWait(3.0f);
 	}
 
 	void play(int playerChoice){
@@ -648,6 +657,7 @@ std::cout << "\nLoading the scene\n\n";
 		Card cpuCard = cpuCards.at(cpuChoice);
 		int pId = playerCard.id;
 		int cId = cpuCard.id;
+		cpuCardId = cId;
 		glm::mat4 pCur =  SC.TI[4].I[pId].Wm;
 		glm::mat4 cCur = SC.TI[4].I[cId].Wm;
 
@@ -657,7 +667,7 @@ std::cout << "\nLoading the scene\n\n";
 		}else{
 			moveToCenter(true, pId, pCur);
 		}
-		ca->addGlobalWait(0.5f);
+		//ca->addGlobalWait(0.5f);
 		sortHand(true, playerChoice);
 		sortHand(false, cpuChoice);
 		
@@ -699,6 +709,7 @@ std::cout << "\nLoading the scene\n\n";
 		if (!playerFirst) {
 			cpuCard = cpuCards.at(cpuChoice);
 			cId = cpuCard.id;
+			cpuCardId = cId;
 			cCur = SC.TI[4].I[cId].Wm;
 			moveToCenter(false, cId, cCur);
 		}
@@ -723,7 +734,7 @@ std::cout << "\nLoading the scene\n\n";
 				debounce = true;
 				curDebounce = GLFW_KEY_1;
 
-				if(gc.IsPlayerTurn()){
+				if(gc.IsPlayerTurn() or ca->isFinished(cpuCardId)){
 					play(0);
 				}
 			}
@@ -739,7 +750,7 @@ std::cout << "\nLoading the scene\n\n";
 				debounce = true;
 				curDebounce = GLFW_KEY_2;
 
-				if(gc.IsPlayerTurn()){
+				if(gc.IsPlayerTurn() or ca->isFinished(cpuCardId)){
 					play(0);
 				}
 				//debug1.y = 1.0 - debug1.y;
@@ -760,7 +771,7 @@ std::cout << "\nLoading the scene\n\n";
 				debounce = true;
 				curDebounce = GLFW_KEY_3;
 
-				if(gc.IsPlayerTurn()){
+				if(gc.IsPlayerTurn()or ca->isFinished(cpuCardId)){
 					play(2);
 				}
 				//debug1.y = 1.0 - debug1.y;
@@ -911,6 +922,8 @@ std::cout << "Playing anim: " << curAnim << "\n";
 
 		// CARD objects
 		if(newGame) {
+			float animDur = 0.0f; //usually 0.8f
+			float animWait = 0.0f; // usually 0.5f
 			glm::vec3 basePos(-0.177f, 0.563f, 0.0f);
 			std::vector<Card> cards = gc.getDeck();
 
@@ -942,22 +955,22 @@ std::cout << "Playing anim: " << curAnim << "\n";
 				id, 
 				cur,
 				glm::vec3(0.0f, 0.593f, 0.0f),
-				0.4f,
+				animDur/2,
 				180.0f, glm::vec3(0,0,1),
-				0.8f,
+				animDur ,
 				false
 			);
-			ca->addWait(id, cur, 0.5f);
+			ca->addWait(id, cur, animWait);
 			ca->addMoveAndRotate(
 				id,
 				cur,
 				glm::vec3(-0.16f, 0.563f, 0.0f),
-				0.8f,
+				animDur,
 				-90.0f, glm::vec3(0,1, 0),
-				0.8f,
+				animDur ,
 				false
 			);
-			ca->addGlobalWait(3.0f);
+			ca->addGlobalWait(animWait);
 
 			playerCards.clear();
 			cpuCards.clear();
@@ -970,21 +983,21 @@ std::cout << "Playing anim: " << curAnim << "\n";
 					id,
 					cur,
 					glm::vec3(0.0f, 0.563f, 0.2f),
-					0.8f,
+					animDur ,
 					180.0f, glm::vec3(0,1, 0),
-					0.8f,
+					animDur ,
 					false
 				);
 				ca->addMoveAndRotate(
 					id,
 					cur,
 					glm::vec3(-offset+i, 0.75f, 0.5f),
-					0.8f,
+					animDur ,
 					-90.0f, glm::vec3(1,0, 0),
-					0.8f,
+					animDur ,
 					false
 				);
-				ca->addGlobalWait(1.0f);
+				ca->addGlobalWait(animWait);
 				id = cards.at(j+1).id;
 				cur = SC.TI[4].I[id].Wm;
 				ca->addMove  (id, cur, glm::vec3(0.0f, 0.563f, -0.2f), 0.8f);
@@ -992,12 +1005,12 @@ std::cout << "Playing anim: " << curAnim << "\n";
 					id,
 					cur,
 					glm::vec3(offset-i, 0.75f, -0.5f),
-					0.8f,
+					animDur ,
 					90.0f, glm::vec3(1,0, 0),
-					0.8f,
+					animDur ,
 					false
 				);
-				ca->addGlobalWait(1.0f);
+				ca->addGlobalWait(animWait);
 				i+=offset;
 				std::cout << "ello " << j << " x " << i << "\n";
 				playerCards.push_back(cards.at(j));
