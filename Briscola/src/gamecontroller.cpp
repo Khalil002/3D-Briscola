@@ -3,20 +3,6 @@
 #include <cstdlib>
 #include <ctime>
 
-/*
-void GameController::start() {
-    if (worker.joinable()) return;                  // already running
-    stopRequested.store(false, std::memory_order_relaxed);
-    worker = std::thread(&GameController::run, this);
-}
-
-void GameController::stop() {
-    stopRequested.store(true, std::memory_order_relaxed);
-    if (worker.joinable()) worker.join();
-}*/
-
-//GameController::~GameController() { stop(); }
-
 std::vector<Card> GameController::getDeck(){
     return deck.getCards();
 }

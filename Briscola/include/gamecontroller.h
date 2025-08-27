@@ -9,8 +9,6 @@
 class GameController {
 public:
     void run();
-    //void start();
-    //void stop();
     void dealInitialCards();
     bool playTurn(int choice, int cpuChoice);
     void displayFinalResult();
@@ -21,13 +19,11 @@ public:
     bool IsPlayerTurn();
     void drawCards(bool isPlayerTurn);
 private:
-    //~GameController();
     Deck deck;
     Player player;
     Player cpu;
     Card briscola;
     bool isPlayerTurn;
-    std::atomic<bool> stopRequested{false};
     std::thread worker;
 };
 
