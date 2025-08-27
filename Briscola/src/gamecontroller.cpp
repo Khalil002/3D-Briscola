@@ -19,6 +19,14 @@ bool GameController::IsPlayerTurn(){
     return isPlayerTurn;
 }
 
+void GameController::resetGame(){
+    deck = Deck();
+    player = Player();
+    cpu = Player();
+    briscola = Card();
+    run();
+}
+
 void GameController::run() {
     std::srand(std::time(nullptr));
     deck.shuffle();

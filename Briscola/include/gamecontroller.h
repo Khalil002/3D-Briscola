@@ -4,7 +4,6 @@
 #include "player.h"
 #include "deck.h"
 #include "card.h"
-#include <thread>
 
 class GameController {
 public:
@@ -18,13 +17,13 @@ public:
     int getPlayerHandSize();
     bool IsPlayerTurn();
     void drawCards(bool isPlayerTurn);
+    void resetGame();
 private:
     Deck deck;
     Player player;
     Player cpu;
     Card briscola;
     bool isPlayerTurn;
-    std::thread worker;
 };
 
 #endif
