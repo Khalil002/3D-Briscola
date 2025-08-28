@@ -19,6 +19,22 @@ bool GameController::IsPlayerTurn(){
     return isPlayerTurn;
 }
 
+int cardStrength(const Card& card) {
+    switch (card.value) {
+        case 1:  return 10; // Ace strongest
+        case 3:  return 9;  // Then 3
+        case 10: return 8;  // King (Re)
+        case 9:  return 7;  // Knight (Cavallo)
+        case 8:  return 6;  // Jack (Fante)
+        case 7:  return 5;
+        case 6:  return 4;
+        case 5:  return 3;
+        case 4:  return 2;
+        case 2:  return 1;
+        default: return 0;  // should never happen
+    }
+}
+
 void GameController::resetGame(){
     deck = Deck();
     player = Player();
@@ -131,12 +147,28 @@ void GameController::displayFinalResult() {
     }
 }
 
-bool GameController::beats(const Card& first, const Card& second, Suit briscolaSuit, Suit playedSuit) {
-    if (second.suit == first.suit) {
-        return second.value > first.value;
-    } else if (second.suit == briscolaSuit && first.suit != briscolaSuit) {
+bool GameController::beats(const Card& first, const Card& second, Suit briscolaSuit, Suit ledSuit) {
+    // If second card is briscola and first is not -> second wins
+    if (second.suit == briscolaSuit && first.suit != briscolaSuit) {
         return true;
-    } else {
+    }
+    // If first is briscola and second is not -> first wins
+    if (first.suit == briscolaSuit && second.suit != briscolaSuit) {
         return false;
     }
+
+    // If both are same suit (could both be briscola too)
+    if (second.suit == first.suit) {
+        return cardStrength(second) > cardStrength(first);
+    }
+
+    // If second didn’t follow the lead suit -> it loses
+    if (second.suit != ledSuit) {
+        return false;
+    }
+
+    // Otherwise, second followed the led suit
+    return cardStrength(second) > cardStrength(first);
 }
+
+
