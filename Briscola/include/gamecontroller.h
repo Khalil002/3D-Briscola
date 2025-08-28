@@ -18,6 +18,10 @@ public:
     bool IsPlayerTurn();
     void drawCards(bool isPlayerTurn);
     void resetGame();
+    int getPlayerPoints() const { return player.points; }
+    int getCpuPoints() const { return cpu.points; }
+    Card getBriscola() const { return briscola; }
+
 private:
     Deck deck;
     Player player;

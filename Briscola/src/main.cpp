@@ -119,6 +119,7 @@ class BRISCOLA : public BaseProject {
 
 	// Briscola game controller
 	GameController gc;
+	Player player;
 	std::vector<Card> cardsOnTable; // cards currently on the table
 	std::vector<Card> playerCards;
 	std::vector<Card> cpuCards;
@@ -1115,7 +1116,28 @@ std::cout << "Playing anim: " << curAnim << "\n";
 			elapsedT = 0.0f;
 		    countedFrames = 0;
 		}
-		
+		// Player score
+		txt.print(0.05f, 0.95f, "Player: " + std::to_string(gc.getPlayerPoints()), 2, "CO", false, false, true,
+				  TAL_LEFT, TRH_LEFT, TRV_TOP,
+				  {1,1,1,1}, {0,0,0,1});
+
+		// CPU score
+		txt.print(0.95f, 0.95f, "CPU: " + std::to_string(gc.getCpuPoints()), 3, "CO", false, false, true,
+				  TAL_RIGHT, TRH_RIGHT, TRV_TOP,
+				  {1,1,1,1}, {0,0,0,1});
+
+		// Turn
+		txt.print(0.5f, 0.10f, gc.IsPlayerTurn() ? "Your turn" : "CPU's turn", 4, "CO", false, false, true,
+				  TAL_CENTER, TRH_CENTER, TRV_BOTTOM,
+				  {0,1,0,1}, {0,0,0,1});
+
+		// --- GAME OVER MESSAGE ---
+		if (gameOver) {
+			txt.print(0.5f, 0.5f, "GAME OVER", 5, "CO", false, false, true,
+					  TAL_CENTER, TRH_CENTER, TRV_MIDDLE,
+					  {1,0,0,1}, {0,0,0,1});
+		}
+
 		txt.updateCommandBuffer();
 	}
 	
