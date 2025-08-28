@@ -1136,6 +1136,21 @@ std::cout << "Playing anim: " << curAnim << "\n";
 			txt.print(0.5f, 0.5f, "GAME OVER", 5, "CO", false, false, true,
 					  TAL_CENTER, TRH_CENTER, TRV_MIDDLE,
 					  {1,0,0,1}, {0,0,0,1});
+			if (gc.getPlayerPoints()>60) {
+				txt.print(0.5f, 0.5f, "YOU WON", 6, "CO", false, false, true,
+					  TAL_CENTER, TRH_CENTER, TRV_MIDDLE,
+					  {1,0,0,1}, {0,0,0,1});
+			}
+			if (gc.getCpuPoints()>60) {
+				txt.print(0.5f, 0.5f, "CPU WON", 6, "CO", false, false, true,
+					  TAL_CENTER, TRH_CENTER, TRV_MIDDLE,
+					  {1,0,0,1}, {0,0,0,1});
+			}
+			else {
+				txt.print(0.5f, 0.5f, "DRAW", 6, "CO", false, false, true,
+					  TAL_CENTER, TRH_CENTER, TRV_MIDDLE,
+					  {1,0,0,1}, {0,0,0,1});
+			}
 		}
 
 		txt.updateCommandBuffer();
