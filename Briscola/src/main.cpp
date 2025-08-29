@@ -911,9 +911,13 @@ std::cout << "\nLoading the scene\n\n";
 				debounce = true;
 				curDebounce = GLFW_KEY_R;
 
-				newGame = true;
-				gameOver = false;
-				gc.resetGame();
+				if (gameOver) {
+					newGame = true;
+					gameOver = false;
+					gc.resetGame();
+				}
+
+
 			}
 		} else {
 			if((curDebounce == GLFW_KEY_R) && debounce) {
