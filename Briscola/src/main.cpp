@@ -133,7 +133,7 @@ class BRISCOLA : public BaseProject {
 	std::unique_ptr<CardAnimator> ca;
 	// to provide textual feedback
 	TextMaker txt;
-	
+
 	// Other application parameters
 	float Ar{};	// Aspect ratio
 
@@ -144,8 +144,10 @@ class BRISCOLA : public BaseProject {
 	float Yaw = glm::radians(0.0f);
 	float Pitch = glm::radians(0.0f);
 	float Roll = glm::radians(0.0f);
-	
+
 	glm::vec4 debug1 = glm::vec4(0);
+
+	int selectedCardIndex = 0;
 
 	// Here you set the main application parameters
 	void setWindowParameters() {
@@ -154,11 +156,11 @@ class BRISCOLA : public BaseProject {
 		windowHeight = 600;
 		windowTitle = "CG Project - Briscola";
     	windowResizable = GLFW_TRUE;
-		
+
 		// Initial aspect ratio
 		Ar = 4.0f / 3.0f;
 	}
-	
+
 	// What to do when the window changes size
 	void onWindowResize(int w, int h) {
 		std::cout << "Window resized to: " << w << " x " << h << "\n";
@@ -166,11 +168,11 @@ class BRISCOLA : public BaseProject {
 		// Update Render Pass
 		RP.width = w;
 		RP.height = h;
-		
+
 		// updates the textual output
 		txt.resizeScreen(w, h);
 	}
-	
+
 	// Here you load and setup all your Vulkan Models and Texutures.
 	// Here you also create your Descriptor set layouts and load the shaders for the pipelines
 	void localInit() {
@@ -201,7 +203,7 @@ class BRISCOLA : public BaseProject {
 					{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1},
 					{2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1, 1}
 				  });
-		
+
 		DSLskyBox.init(this, {
 			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(skyBoxUniformBufferObject), 1},
 			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1}
@@ -223,7 +225,7 @@ class BRISCOLA : public BaseProject {
 			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1}, // binding 1, uAtlas
 			{2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1, 1}  // binding 2, uBack
 		});
-		
+
 
 
 
@@ -276,18 +278,18 @@ class BRISCOLA : public BaseProject {
 		VDRs[1].init("VDsimp",   &VDsimp);
 		VDRs[2].init("VDskybox", &VDskyBox);
 		VDRs[3].init("VDtan",    &VDtan);
-		
+
 		// initializes the render passes
 		RP.init(this);
 		// sets the blue sky
 		RP.properties[0].clearValue = {0.0f,0.9f,1.0f,1.0f};
-		
+
 
 		// Pipelines [Shader couples]
 		// The last array, is a vector of pointer to the layouts of the sets that will
 		// be used in this pipeline. The first element will be set 0, and so on..
 
-		
+
 
 		Pchar.init(this, &VDchar, "shaders/PosNormUvTanWeights.vert.spv", "shaders/CookTorranceForCharacter.frag.spv", {&DSLglobal, &DSLlocalChar});
 
@@ -301,7 +303,7 @@ class BRISCOLA : public BaseProject {
 		P_PBR.init(this, &VDtan, "shaders/SimplePosNormUvTan.vert.spv", "shaders/PBR.frag.spv", {&DSLglobal, &DSLlocalPBR});
 		Pcard.init(this, &VDsimp, "shaders/card.vert.spv", "shaders/card.frag.spv", {&DSLglobal, &DSLlocalCard});
 		Pcard.setCullMode(VK_CULL_MODE_NONE);
-		//Pcard.setFrontFace(VK_FRONT_FACE_CLOCKWISE); 
+		//Pcard.setFrontFace(VK_FRONT_FACE_CLOCKWISE);
 
 		PRs.resize(5);
 		PRs[0].init("CookTorranceChar", {
@@ -339,7 +341,7 @@ class BRISCOLA : public BaseProject {
 									 }
 									}}
 							  }, /*TotalNtextures*/4, &VDtan);
-		
+
 		PRs[4].init("CardTechnique", {
 			{&Pcard, {
 				/*DSLglobal*/{},
@@ -350,12 +352,12 @@ class BRISCOLA : public BaseProject {
 			}}
 		}, /*TotalNtextures*/2, &VDsimp);
 		// Models, textures and Descriptors (values assigned to the uniforms)
-		
+
 		// sets the size of the Descriptor Set Pool
 		DPSZs.uniformBlocksInPool = 3;
 		DPSZs.texturesInPool = 6;
 		DPSZs.setsInPool = 4;
-		
+
 std::cout << "\nLoading the scene\n\n";
 		if(SC.init(this, /*Npasses*/1, VDRs, PRs, "assets/models/scene.json") != 0) {
 			std::cout << "ERROR LOADING THE SCENE\n";
@@ -368,7 +370,7 @@ std::cout << "\nLoading the scene\n\n";
 		AB.init({{0,32,0.0f,0}, {0,16,0.0f,1}, {0,263,0.0f,2}, {0,83,0.0f,3}, {0,16,0.0f,4}});
 		//AB.init({{0,31,0.0f}});
 		SKA.init(Anim, 5, "Armature|mixamo.com|Layer0", 0);
-		
+
 		// initializes the textual output
 		txt.init(this, windowWidth, windowHeight);
 
@@ -393,12 +395,12 @@ std::cout << "\nLoading the scene\n\n";
 		// Prepares for showing the FPS count
 		txt.print(1.0f, 1.0f, "FPS:",1,"CO",false,false,true,TAL_RIGHT,TRH_RIGHT,TRV_BOTTOM,{1.0f,0.0f,0.0f,1.0f},{0.8f,0.8f,0.0f,1.0f});
 	}
-	
+
 	// Here you create your pipelines and Descriptor Sets!
 	void pipelinesAndDescriptorSetsInit() {
 		// creates the render pass
 		RP.create();
-		
+
 		// This creates a new pipeline (with the current surface), using its shaders for the provided render pass
 		Pchar.create(&RP);
 		PsimpObj.create(&RP);
@@ -432,8 +434,8 @@ std::cout << "\nLoading the scene\n\n";
 		DSLskyBox.cleanup();
 		DSLglobal.cleanup();
 		DSLlocalCard.cleanup();
-		
-		Pchar.destroy();	
+
+		Pchar.destroy();
 		PsimpObj.destroy();
 		PskyBox.destroy();
 		P_PBR.destroy();
@@ -441,9 +443,9 @@ std::cout << "\nLoading the scene\n\n";
 
 		RP.destroy();
 
-		SC.localCleanup();	
+		SC.localCleanup();
 		txt.localCleanup();
-		
+
 		for(int ian = 0; ian < N_ANIMATIONS; ian++) {
 			Anim[ian].cleanup();
 		}
@@ -457,7 +459,7 @@ std::cout << "\nLoading the scene\n\n";
 		float yaw   = glm::degrees(atan2(dir.x, dir.z));
 		float pitch = glm::degrees(asin(dir.y));
 
-		std::cout << "Camera Eye: (" 
+		std::cout << "Camera Eye: ("
 				<< eye.x << ", " << eye.y << ", " << eye.z << ")\n"
 				<< "Yaw: " << yaw << " deg, "
 				<< "Pitch: " << pitch << " deg\n";
@@ -474,7 +476,7 @@ std::cout << "\nLoading the scene\n\n";
 	}
 	// This is the real place where the Command Buffer is written
 	void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage) {
-		
+
 		// begin standard pass
 		RP.begin(commandBuffer, currentImage);
 
@@ -486,7 +488,7 @@ std::cout << "\nLoading the scene\n\n";
 	// Here is where you update the uniforms.
 	// Very likely this will be where you will be writing the logic of your application.
 
-	
+
 
 	static float randRange(float min, float max) {
 		static std::mt19937 rng{std::random_device{}()};
@@ -522,7 +524,7 @@ std::cout << "\nLoading the scene\n\n";
 	void moveToCenterBoth(bool isPlayer, int id1, const glm::mat4& cur1, int id2, const glm::mat4& cur2){
 		float p = isPlayer ? 1.0f : -1.0f;
 		//glm::vec3 tableCenter(0.0f, 0.563f, 0.0f);
-		
+
 		ca->addMoveAndRotate(
 			id1,
 			cur1,
@@ -564,7 +566,7 @@ std::cout << "\nLoading the scene\n\n";
 		float p = isPlayer ? 1.0f : -1.0f;
 		const float offset = 0.06325f;
 
-		
+
 		// If the middle card (index 1) was played, slide the right card to middle:
 		if (choice == 1) {
 			if (hand.size() == 3) {
@@ -596,7 +598,7 @@ std::cout << "\nLoading the scene\n\n";
 
 	void drawCardToHand(bool isPlayer, int cardIndex) {
 		//std::cout << (isPlayer ? "Player" : "CPU") << " draws a card\n";
-		
+
 		float p = -1.0f;
 		if (isPlayer) p = 1.0f;
 		float offset = 0.06325f;
@@ -662,8 +664,8 @@ std::cout << "\nLoading the scene\n\n";
 				false
 			);
 		}
-		
-		
+
+
 	}
 
 	void play(int playerChoice){
@@ -677,7 +679,7 @@ std::cout << "\nLoading the scene\n\n";
 		glm::mat4 pCur =  SC.TI[4].I[pId].Wm;
 		glm::mat4 cCur = SC.TI[4].I[cId].Wm;
 
-		
+
 		if(playerFirst){
 			moveToCenterBoth(true, pId, pCur, cId, cCur);
 		}else{
@@ -689,7 +691,7 @@ std::cout << "\nLoading the scene\n\n";
 
 		ca->addWait(pId, pCur, 1.0f);
 		ca->addWait(cId, cCur, 1.0f);
-		
+
 		// 1.8 sec for the previous animations to complete
 
 		//std::cout << "I exist sadasdasdasdasdasd\n";
@@ -706,7 +708,7 @@ std::cout << "\nLoading the scene\n\n";
 				playerPile.push_back(playerCard);
 				moveToPile(playerPile, playerPilePos, cId, cCur, pId, pCur);
 			}
-			
+
 
 			playerFirst = true;
 			if(gc.getDeck().size() > 0) {
@@ -768,13 +770,70 @@ std::cout << "\nLoading the scene\n\n";
 		prev = now;
 		static bool debounce = false;
 		static int curDebounce = 0;
-		
+
 		// handle the ESC key to exit the app
 		if(glfwGetKey(window, GLFW_KEY_ESCAPE)) {
 			glfwSetWindowShouldClose(window, GL_TRUE);
 		}
 
+		// ==========================
+		// CARD SELECTION WITH ARROWS
+		// ==========================
+		if (glfwGetKey(window, GLFW_KEY_LEFT)) {
+			if (!debounce) {
+				debounce = true;
+				curDebounce = GLFW_KEY_LEFT;
 
+				selectedCardIndex--;
+				if (selectedCardIndex < 0) {
+					selectedCardIndex = static_cast<int>(playerCards.size()) - 1; // wrap to last
+				}
+
+				initCardPosition();
+				highlightCard(selectedCardIndex);
+			}
+		} else if ((curDebounce == GLFW_KEY_LEFT) && debounce) {
+			debounce = false;
+			curDebounce = 0;
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_RIGHT)) {
+			if (!debounce) {
+				debounce = true;
+				curDebounce = GLFW_KEY_RIGHT;
+
+				selectedCardIndex++;
+				if (selectedCardIndex >= static_cast<int>(playerCards.size())) {
+					selectedCardIndex = 0; // wrap to first
+				}
+
+				initCardPosition();
+				highlightCard(selectedCardIndex);
+			}
+		} else if ((curDebounce == GLFW_KEY_RIGHT) && debounce) {
+			debounce = false;
+			curDebounce = 0;
+		}
+
+		//spacebar to confirm
+		if (glfwGetKey(window, GLFW_KEY_SPACE)) {
+			if (!debounce) {
+				debounce = true;
+				curDebounce = GLFW_KEY_SPACE;
+
+				if (!gameOver && !playerCards.empty()) {
+					// Confirm play of the selected card
+					int idx = selectedCardIndex;
+					play(idx);
+				}
+			}
+		} else if ((curDebounce == GLFW_KEY_SPACE) && debounce) {
+			debounce = false;
+			curDebounce = 0;
+		}
+
+
+		//INPUT WITH NUMBERS FOR DEBUG
 		if(glfwGetKey(window, GLFW_KEY_1)) {
 			if(!debounce) {
 				debounce = true;
@@ -787,7 +846,7 @@ std::cout << "\nLoading the scene\n\n";
 						play(0);
 					}
 				}
-				
+
 			}
 		} else {
 			if((curDebounce == GLFW_KEY_1) && debounce) {
@@ -833,7 +892,7 @@ std::cout << "\nLoading the scene\n\n";
 						play(2);
 					}
 				}
-				
+
 				//debug1.y = 1.0 - debug1.y;
 				//int idx = 0;
 				//const glm::mat4 cur = SC.TI[4].I[idx].Wm;
@@ -879,6 +938,7 @@ std::cout << "Showing bone index: " << debug1.z << "\n";
 		}
 
 		static int curAnim = 0;
+		/*
 		if(glfwGetKey(window, GLFW_KEY_SPACE)) {
 			if(!debounce) {
 				debounce = true;
@@ -894,6 +954,7 @@ std::cout << "Playing anim: " << curAnim << "\n";
 				curDebounce = 0;
 			}
 		}
+		*/
 
 		if (glfwGetKey(window, GLFW_KEY_9)) {
 			if (!debounce) {
@@ -912,15 +973,15 @@ std::cout << "Playing anim: " << curAnim << "\n";
 
 		// moves the view
 		float deltaT = GameLogic();
-		
+
 		// updated the animation
 		const float SpeedUpAnimFact = 0.85f;
 		AB.Advance(deltaT * SpeedUpAnimFact);
-		
+
 		// defines the global parameters for the uniform
 		const glm::mat4 lightView = glm::rotate(glm::mat4(1), glm::radians(-30.0f), glm::vec3(0.0f,1.0f,0.0f)) * glm::rotate(glm::mat4(1), glm::radians(-45.0f), glm::vec3(1.0f,0.0f,0.0f));
 		const glm::vec3 lightDir = glm::vec3(lightView * glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
-	
+
 		GlobalUniformBufferObject gubo{};
 
 		gubo.lightDir = lightDir;
@@ -928,18 +989,18 @@ std::cout << "Playing anim: " << curAnim << "\n";
 		gubo.eyePos = cameraPos;
 
 		// defines the local parameters for the uniforms
-		UniformBufferObjectChar uboc{};	
+		UniformBufferObjectChar uboc{};
 		uboc.debug1 = debug1;
 
 		SKA.Sample(AB);
 		std::vector<glm::mat4> *TMsp = SKA.getTransformMatrices();
-		
+
 //printMat4("TF[55]", (*TMsp)[55]);
-		
+
 		glm::mat4 AdaptMat =
-			glm::scale(glm::mat4(1.0f), glm::vec3(0.01f)) * 
+			glm::scale(glm::mat4(1.0f), glm::vec3(0.01f)) *
 			glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f,0.0f,0.0f));
-		
+
 		int instanceId;
 		// character
 		for(instanceId = 0; instanceId < SC.TI[0].InstanceCount; instanceId++) {
@@ -955,7 +1016,7 @@ std::cout << "Playing anim: " << curAnim << "\n";
 			SC.TI[0].I[instanceId].DS[0][1]->map(currentImage, &uboc, 0);  // Set 1
 		}
 
-		UniformBufferObjectSimp ubos{};	
+		UniformBufferObjectSimp ubos{};
 		// normal objects
 		for(instanceId = 0; instanceId < SC.TI[1].InstanceCount; instanceId++) {
 			ubos.mMat   = SC.TI[1].I[instanceId].Wm;
@@ -965,7 +1026,7 @@ std::cout << "Playing anim: " << curAnim << "\n";
 			SC.TI[1].I[instanceId].DS[0][0]->map(currentImage, &gubo, 0); // Set 0
 			SC.TI[1].I[instanceId].DS[0][1]->map(currentImage, &ubos, 0);  // Set 1
 		}
-		
+
 		// skybox pipeline
 		skyBoxUniformBufferObject sbubo{};
 		sbubo.mvpMat = ViewPrj * glm::translate(glm::mat4(1), cameraPos) * glm::scale(glm::mat4(1), glm::vec3(100.0f));
@@ -1015,7 +1076,7 @@ std::cout << "Playing anim: " << curAnim << "\n";
 			ca->addMove  (id, cur, glm::vec3(0.0f, 0.563f, 0.0f), 0.8f);
 
 			ca->addMoveAndRotate(
-				id, 
+				id,
 				cur,
 				glm::vec3(0.0f, 0.593f, 0.0f),
 				animDur/2,
@@ -1081,7 +1142,7 @@ std::cout << "Playing anim: " << curAnim << "\n";
 			}
 			gc.dealInitialCards();
 			cpuChoice = cpuCards.empty() ? -1 : std::rand() % static_cast<int>(cpuCards.size());
-			
+
 
 		}
 
@@ -1099,20 +1160,22 @@ std::cout << "Playing anim: " << curAnim << "\n";
 			SC.TI[4].I[instanceId].DS[0][1]->map(currentImage, &ubos2, 0);  // Set 1
 		}
 
+
+
 		// updates the FPS
 		static float elapsedT = 0.0f;
 		static int countedFrames = 0;
-		
+
 		countedFrames++;
 		elapsedT += deltaT;
 		if(elapsedT > 1.0f) {
 			float Fps = (float)countedFrames / elapsedT;
-			
+
 			std::ostringstream oss;
 			oss << "FPS: " << Fps << "\n";
 
 			txt.print(1.0f, 1.0f, oss.str(), 1, "CO", false, false, true,TAL_RIGHT,TRH_RIGHT,TRV_BOTTOM,{1.0f,0.0f,0.0f,1.0f},{0.8f,0.8f,0.0f,1.0f});
-			
+
 			elapsedT = 0.0f;
 		    countedFrames = 0;
 		}
@@ -1155,7 +1218,7 @@ std::cout << "Playing anim: " << curAnim << "\n";
 
 		txt.updateCommandBuffer();
 	}
-	
+
 	float GameLogic() {
 		// Parameters
 		// Camera FOV-y, Near Plane and Far Plane
@@ -1202,7 +1265,7 @@ std::cout << "Playing anim: " << curAnim << "\n";
 /*		camDist = camDist - m.y * ZOOM_SPEED * deltaT;
 		camDist = camDist < MIN_CAM_DIST ? MIN_CAM_DIST :
 				 (camDist > MAX_CAM_DIST ? MAX_CAM_DIST : camDist);*/
-		camDist = (MIN_CAM_DIST + MIN_CAM_DIST) / 2.0f; 
+		camDist = (MIN_CAM_DIST + MIN_CAM_DIST) / 2.0f;
 
 		// To be done in the assignment
 		ViewPrj = glm::mat4(1);
@@ -1215,8 +1278,8 @@ std::cout << "Playing anim: " << curAnim << "\n";
 		static float relDir = glm::radians(0.0f);
 		static float dampedRelDir = glm::radians(0.0f);
 		static glm::vec3 dampedCamPos = StartingPosition;
-		
-		
+
+
 
 		// World
 		// Position
@@ -1224,7 +1287,7 @@ std::cout << "Playing anim: " << curAnim << "\n";
 		glm::vec3 uz = glm::rotate(glm::mat4(1.0f), Yaw, glm::vec3(0,1,0)) * glm::vec4(0,0,-1,1);
 		Pos = Pos + MOVE_SPEED * m.x * ux * deltaT;
 		Pos = Pos - MOVE_SPEED * m.z * uz * deltaT;
-		
+
 		camHeight += MOVE_SPEED * m.y * deltaT;
 		// Rotation
 		Yaw = Yaw - ROT_SPEED * deltaT * r.y;
@@ -1255,10 +1318,10 @@ std::cout << "Playing anim: " << curAnim << "\n";
 						   dampedRelDir < relDir - 3.1416f ? dampedRelDir + 6.28f : dampedRelDir;
 		}
 		dampedRelDir = ef * dampedRelDir + (1.0f - ef) * relDir;
-		
+
 		// Final world matrix computaiton
 		World = glm::translate(glm::mat4(1), Pos) * glm::rotate(glm::mat4(1.0f), dampedRelDir, glm::vec3(0,1,0));
-		
+
 		// Projection
 		glm::mat4 Prj = glm::perspective(FOVy, Ar, nearPlane, farPlane);
 		Prj[1][1] *= -1;
@@ -1276,14 +1339,14 @@ std::cout << "Playing anim: " << curAnim << "\n";
 		if (camSnapped) {
 			// kill damping so it snaps; also freeze dampedRelDir if you like
 			dampedCamPos = cameraPos;
-		} 
+		}
 
 		glm::mat4 View = glm::lookAt(dampedCamPos, target, glm::vec3(0,1,0));
 
 		ViewPrj = Prj * View;
-		
+
 		float vel = length(Pos - oldPos) / deltaT;
-		
+
 		if(vel < 0.2) {
 			if(currRunState != 1) {
 				currRunState = 1;
@@ -1317,8 +1380,48 @@ std::cout << "Playing anim: " << curAnim << "\n";
 			World     = glm::mat4(1.0f); // freeze world if you want
 		}
 
-		
+
 		return deltaT;
+	}
+	void initCardPosition() {
+		// Put player cards back to their base (rest) slots.
+		// Slots (left, middle, right) match how you already place them.
+		const float offset = 0.06325f;
+		static const glm::vec3 baseSlots[3] = {
+			glm::vec3(-offset, 0.75f,  0.5f), // left
+			glm::vec3( 0.0f,   0.75f,  0.5f), // middle
+			glm::vec3( offset, 0.75f,  0.5f)  // right
+		};
+
+		const int n = static_cast<int>(playerCards.size());
+		for (int i = 0; i < n && i < 3; ++i) {
+			int id = playerCards[i].id;
+			glm::mat4 M = SC.TI[4].I[id].Wm;          // keep current rotation/scale
+			M[3] = glm::vec4(baseSlots[i], 1.0f);     // replace only translation
+			SC.TI[4].I[id].Wm = M;
+		}
+
+	}
+	void highlightCard(int index) {
+		if (index < 0 || index >= static_cast<int>(playerCards.size())) return;
+
+		// First reset everyone to their base slots
+		initCardPosition();
+
+		// Now raise the selected one slightly (on Y only)
+		const float offset = 0.06325f;
+		static const glm::vec3 baseSlots[3] = {
+			glm::vec3(-offset, 0.75f,  0.5f),
+			glm::vec3( 0.0f,   0.75f,  0.5f),
+			glm::vec3( offset, 0.75f,  0.5f)
+		};
+
+		const float raise = 0.035f;  // tweak to taste
+		int id = playerCards[index].id;
+		glm::mat4 M = SC.TI[4].I[id].Wm;
+		glm::vec3 raised = baseSlots[index] + glm::vec3(0.0f, raise, 0.0f);
+		M[3] = glm::vec4(raised, 1.0f);
+		SC.TI[4].I[id].Wm = M;
 	}
 };
 
