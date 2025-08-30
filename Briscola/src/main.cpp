@@ -55,6 +55,7 @@ struct GlobalUniformBufferObject {
 	alignas(16) glm::vec3 lightDir;
 	alignas(16) glm::vec4 lightColor;
 	alignas(16) glm::vec3 eyePos;
+	alignas(4)  int highlightCardIndex;
 };
 
 struct UniformBufferObjectChar {
@@ -992,6 +993,11 @@ std::cout << "Playing anim: " << curAnim << "\n";
 		gubo.lightDir = lightDir;
 		gubo.lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 		gubo.eyePos = cameraPos;
+		if (selectedCardIndex >= 0 && selectedCardIndex < (int)playerCards.size()) {
+			gubo.highlightCardIndex = playerCards[selectedCardIndex].id; // actual scene ID
+		} else {
+			gubo.highlightCardIndex = -1; // no card highlighted
+		}
 
 		// defines the local parameters for the uniforms
 		UniformBufferObjectChar uboc{};
@@ -1428,7 +1434,7 @@ std::cout << "Playing anim: " << curAnim << "\n";
 		// First reset everyone to their base slots
 		initCardPosition();
 
-		// Now raise the selected one slightly (on Y only)
+		// raise the selected one slightly (on Y only)
 		const float offset = 0.06325f;
 		static const glm::vec3 baseSlots[3] = {
 			glm::vec3(-offset, 0.75f,  0.5f),
@@ -1436,7 +1442,7 @@ std::cout << "Playing anim: " << curAnim << "\n";
 			glm::vec3( offset, 0.75f,  0.5f)
 		};
 
-		const float raise = 0.035f;  // tweak to taste
+		const float raise = 0.035f;  // tweakable
 		int id = playerCards[index].id;
 		glm::mat4 M = SC.TI[4].I[id].Wm;
 		glm::vec3 raised = baseSlots[index] + glm::vec3(0.0f, raise, 0.0f);

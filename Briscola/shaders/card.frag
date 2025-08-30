@@ -15,6 +15,7 @@ layout(binding = 0, set = 0) uniform GlobalUniformBufferObject {
 	vec3 lightDir;
 	vec4 lightColor;
 	vec3 eyePos;
+	int highlightCardIndex;
 } gubo;
 
 const float PI = 3.14159265359;
@@ -123,8 +124,19 @@ void main() {
 				   (Norm.z > 0 ? czp : czn) * (Norm.z * Norm.z)) * albedo;	
 
 	vec3 col  = (Diffuse + Specular) * lightColor + Ambient;
+
+	vec4 finalColor = vec4(col, 1.0f);
+
+    // Highlight if this is the selected card
+    if (vCardIndex == gubo.highlightCardIndex) {
+        float edgeDist = min(min(fragUV.x, 1.0 - fragUV.x), min(fragUV.y, 1.0 - fragUV.y));
+        float glow = smoothstep(0.08, 0.0, edgeDist);
+        finalColor.rgb += glow * vec3(1.0, 0.6, 0.2) * 1.5;
+    }
+
+    outColor = finalColor;
 	
-	outColor = vec4(col, 1.0f);
+	//outColor = vec4(col, 1.0f);
 	//outColor = gl_FrontFacing ? outColor : vec4(0,0,1,1);
 	//outColor = facingCamera ? vec4(1,0,0,1) : vec4(0,1,0,1);
 
