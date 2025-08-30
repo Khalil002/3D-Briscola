@@ -150,6 +150,15 @@ class BRISCOLA : public BaseProject {
 
 	int selectedCardIndex = -1;
 
+	enum class GameState {
+		MENU,
+		PLAYING,
+		GAME_OVER
+	};
+
+	GameState gameState = GameState::MENU;
+	int menuIndex = 0; // 0 = Play, 1 = Exit
+
 	// Here you set the main application parameters
 	void setWindowParameters() {
 		// window size, titile and initial background
@@ -765,484 +774,550 @@ std::cout << "\nLoading the scene\n\n";
 	}
 
 	void updateUniformBuffer(uint32_t currentImage) {
-		static double prev = glfwGetTime();
-		double now = glfwGetTime();
-		float dt = float(now - prev);
-		prev = now;
 		static bool debounce = false;
 		static int curDebounce = 0;
 
-		// handle the ESC key to exit the app
-		if(glfwGetKey(window, GLFW_KEY_ESCAPE)) {
-			glfwSetWindowShouldClose(window, GL_TRUE);
-		}
-
 		// ==========================
-		// CARD SELECTION WITH ARROWS
+		// INIT MENU
 		// ==========================
-		if (glfwGetKey(window, GLFW_KEY_LEFT)) {
-			if (!debounce) {
-				debounce = true;
-				curDebounce = GLFW_KEY_LEFT;
-
-				selectedCardIndex--;
-				if (selectedCardIndex < 0) {
-					selectedCardIndex = static_cast<int>(playerCards.size()) - 1; // wrap to last
-				}
-
-				initCardPosition();
-				highlightCard(selectedCardIndex);
+		if (gameState == GameState::MENU) {
+			if (glfwGetKey(window, GLFW_KEY_UP) && !debounce) {
+				debounce = true; curDebounce = GLFW_KEY_UP;
+				menuIndex = (menuIndex + 1) % 2; // toggle between 0 and 1
+			} else if ((curDebounce == GLFW_KEY_UP) && debounce) {
+				debounce = false; curDebounce = 0;
 			}
-		} else if ((curDebounce == GLFW_KEY_LEFT) && debounce) {
-			debounce = false;
-			curDebounce = 0;
-		}
 
-		if (glfwGetKey(window, GLFW_KEY_RIGHT)) {
-			if (!debounce) {
-				debounce = true;
-				curDebounce = GLFW_KEY_RIGHT;
-
-				selectedCardIndex++;
-				if (selectedCardIndex >= static_cast<int>(playerCards.size())) {
-					selectedCardIndex = 0; // wrap to first
-				}
-
-				initCardPosition();
-				highlightCard(selectedCardIndex);
+			if (glfwGetKey(window, GLFW_KEY_DOWN) && !debounce) {
+				debounce = true; curDebounce = GLFW_KEY_DOWN;
+				menuIndex = (menuIndex + 1) % 2;
+			} else if ((curDebounce == GLFW_KEY_DOWN) && debounce) {
+				debounce = false; curDebounce = 0;
 			}
-		} else if ((curDebounce == GLFW_KEY_RIGHT) && debounce) {
-			debounce = false;
-			curDebounce = 0;
-		}
 
-		//spacebar to confirm
-		if (glfwGetKey(window, GLFW_KEY_SPACE)) {
-			if (!debounce) {
-				debounce = true;
-				curDebounce = GLFW_KEY_SPACE;
+			if (glfwGetKey(window, GLFW_KEY_SPACE) && !debounce) {
+				debounce = true; curDebounce = GLFW_KEY_SPACE;
 
-				if (!gameOver && !playerCards.empty()) {
-					// Confirm play of the selected card
-					int idx = selectedCardIndex;
-					play(idx);
-					selectedCardIndex = -1; //reset the index
-				}
-			}
-		} else if ((curDebounce == GLFW_KEY_SPACE) && debounce) {
-			debounce = false;
-			curDebounce = 0;
-		}
-
-
-		//INPUT WITH NUMBERS FOR DEBUG
-		if(glfwGetKey(window, GLFW_KEY_1)) {
-			if(!debounce) {
-				debounce = true;
-				curDebounce = GLFW_KEY_1;
-
-				if(!gameOver){
-					if(gc.IsPlayerTurn() and ca->isFinished(cpuCardId)){
-						play(0);
-					}else if(ca->isFinished(cpuCardId)){
-						play(0);
-					}
-				}
-
-			}
-		} else {
-			if((curDebounce == GLFW_KEY_1) && debounce) {
-				debounce = false;
-				curDebounce = 0;
-			}
-		}
-
-		if(glfwGetKey(window, GLFW_KEY_2)) {
-			if(!debounce) {
-				debounce = true;
-				curDebounce = GLFW_KEY_2;
-
-				if(!gameOver and gc.getPlayerHandSize() > 1){
-					if(gc.IsPlayerTurn() or ca->isFinished(cpuCardId)){
-						play(1);
-					}else if(ca->isFinished(cpuCardId)){
-						play(1);
-					}
-				}
-				//debug1.y = 1.0 - debug1.y;
-				//int idx = 0;
-				//const glm::mat4 cur = SC.TI[4].I[idx].Wm;
-				// Flip around Z (you used {0,0,1}); choose localAxis=true to spin around card’s own axis
-				//cardAnim.startFlipFromCurrent(4, idx, cur, 1.0f, glm::vec3(0,0,1), /*localAxis=*/true);
-			}
-		} else {
-			if((curDebounce == GLFW_KEY_2) && debounce) {
-				debounce = false;
-				curDebounce = 0;
-			}
-		}
-
-		if(glfwGetKey(window, GLFW_KEY_3)) {
-			if(!debounce) {
-				debounce = true;
-				curDebounce = GLFW_KEY_3;
-
-				if(!gameOver and gc.getPlayerHandSize() > 2){
-					if(gc.IsPlayerTurn()or ca->isFinished(cpuCardId)){
-					play(2);
-					}else if(ca->isFinished(cpuCardId)){
-						play(2);
-					}
-				}
-
-				//debug1.y = 1.0 - debug1.y;
-				//int idx = 0;
-				//const glm::mat4 cur = SC.TI[4].I[idx].Wm;
-				// Flip around Z (you used {0,0,1}); choose localAxis=true to spin around card’s own axis
-				//cardAnim.startFlipFromCurrent(4, idx, cur, 1.0f, glm::vec3(0,0,1), /*localAxis=*/true);
-			}
-		} else {
-			if((curDebounce == GLFW_KEY_3) && debounce) {
-				debounce = false;
-				curDebounce = 0;
-			}
-		}
-
-		if(glfwGetKey(window, GLFW_KEY_R)) {
-			if(!debounce) {
-				debounce = true;
-				curDebounce = GLFW_KEY_R;
-
-				if (gameOver) {
-					newGame = true;
-					gameOver = false;
+				if (menuIndex == 0) {
+					// Play
+					gameState = GameState::PLAYING; //PLAYING SELECTED
+					newGame = true; gameOver = false;
 					gc.resetGame();
+				} else {
+					// Exit
+					glfwSetWindowShouldClose(window, GL_TRUE);
+				}
+			} else if ((curDebounce == GLFW_KEY_SPACE) && debounce) {
+				debounce = false; curDebounce = 0;
+			}
+
+			// Render the menu text only if in the MENU state
+			txt.print(0.0f, 0.2f, "PLAY", 10, "CO", false, false, true,
+					  TAL_CENTER, TRH_CENTER, TRV_MIDDLE,
+					  (menuIndex == 0) ? glm::vec4(1, 0.5, 0, 1) : glm::vec4(1, 1, 1, 1),
+					  {0, 0, 0, 1});
+
+			txt.print(0.0f, -0.2f, "EXIT", 11, "CO", false, false, true,
+					  TAL_CENTER, TRH_CENTER, TRV_MIDDLE,
+					  (menuIndex == 1) ? glm::vec4(1, 0.5, 0, 1) : glm::vec4(1, 1, 1, 1),
+					  {0, 0, 0, 1});
+
+			txt.updateCommandBuffer();  // Render the menu
+			return;  // Skip the rest of the game logic while in MENU state
+		}
+
+		// ==========================
+		// GAME LOGIC
+		// ==========================
+		if (gameState == GameState::PLAYING) {
+			static double prev = glfwGetTime();
+			double now = glfwGetTime();
+			float dt = float(now - prev);
+			prev = now;
+
+			//Reset menu text
+			txt.print(0.0f, 0.2f, "", 10, "CO", false, false, true,
+					  TAL_CENTER, TRH_CENTER, TRV_MIDDLE,
+					  (menuIndex == 0) ? glm::vec4(1, 0.5, 0, 1) : glm::vec4(1, 1, 1, 1),
+					  {0, 0, 0, 1});
+
+			txt.print(0.0f, -0.2f, "", 11, "CO", false, false, true,
+					  TAL_CENTER, TRH_CENTER, TRV_MIDDLE,
+					  (menuIndex == 1) ? glm::vec4(1, 0.5, 0, 1) : glm::vec4(1, 1, 1, 1),
+					  {0, 0, 0, 1});
+
+			// handle the ESC key to exit the app
+			if(glfwGetKey(window, GLFW_KEY_ESCAPE)) {
+				glfwSetWindowShouldClose(window, GL_TRUE);
+			}
+
+			// ==========================
+			// CARD SELECTION WITH ARROWS
+			// ==========================
+			if (glfwGetKey(window, GLFW_KEY_LEFT)) {
+				if (!debounce) {
+					debounce = true;
+					curDebounce = GLFW_KEY_LEFT;
+
+					selectedCardIndex--;
+					if (selectedCardIndex < 0) {
+						selectedCardIndex = static_cast<int>(playerCards.size()) - 1; // wrap to last
+					}
+
+					initCardPosition();
+					highlightCard(selectedCardIndex);
+				}
+			} else if ((curDebounce == GLFW_KEY_LEFT) && debounce) {
+				debounce = false;
+				curDebounce = 0;
+			}
+
+			if (glfwGetKey(window, GLFW_KEY_RIGHT)) {
+				if (!debounce) {
+					debounce = true;
+					curDebounce = GLFW_KEY_RIGHT;
+
+					selectedCardIndex++;
+					if (selectedCardIndex >= static_cast<int>(playerCards.size())) {
+						selectedCardIndex = 0; // wrap to first
+					}
+
+					initCardPosition();
+					highlightCard(selectedCardIndex);
+				}
+			} else if ((curDebounce == GLFW_KEY_RIGHT) && debounce) {
+				debounce = false;
+				curDebounce = 0;
+			}
+
+			//spacebar to confirm
+			if (glfwGetKey(window, GLFW_KEY_SPACE)) {
+				if (!debounce) {
+					debounce = true;
+					curDebounce = GLFW_KEY_SPACE;
+
+					if (!gameOver && !playerCards.empty()) {
+						// Confirm play of the selected card
+						int idx = selectedCardIndex;
+						play(idx);
+						selectedCardIndex = -1; //reset the index
+					}
+				}
+			} else if ((curDebounce == GLFW_KEY_SPACE) && debounce) {
+				debounce = false;
+				curDebounce = 0;
+			}
+
+
+			//INPUT WITH NUMBERS FOR DEBUG
+			if(glfwGetKey(window, GLFW_KEY_1)) {
+				if(!debounce) {
+					debounce = true;
+					curDebounce = GLFW_KEY_1;
+
+					if(!gameOver){
+						if(gc.IsPlayerTurn() and ca->isFinished(cpuCardId)){
+							play(0);
+						}else if(ca->isFinished(cpuCardId)){
+							play(0);
+						}
+					}
+
+				}
+			} else {
+				if((curDebounce == GLFW_KEY_1) && debounce) {
+					debounce = false;
+					curDebounce = 0;
+				}
+			}
+
+			if(glfwGetKey(window, GLFW_KEY_2)) {
+				if(!debounce) {
+					debounce = true;
+					curDebounce = GLFW_KEY_2;
+
+					if(!gameOver and gc.getPlayerHandSize() > 1){
+						if(gc.IsPlayerTurn() or ca->isFinished(cpuCardId)){
+							play(1);
+						}else if(ca->isFinished(cpuCardId)){
+							play(1);
+						}
+					}
+					//debug1.y = 1.0 - debug1.y;
+					//int idx = 0;
+					//const glm::mat4 cur = SC.TI[4].I[idx].Wm;
+					// Flip around Z (you used {0,0,1}); choose localAxis=true to spin around card’s own axis
+					//cardAnim.startFlipFromCurrent(4, idx, cur, 1.0f, glm::vec3(0,0,1), /*localAxis=*/true);
+				}
+			} else {
+				if((curDebounce == GLFW_KEY_2) && debounce) {
+					debounce = false;
+					curDebounce = 0;
+				}
+			}
+
+			if(glfwGetKey(window, GLFW_KEY_3)) {
+				if(!debounce) {
+					debounce = true;
+					curDebounce = GLFW_KEY_3;
+
+					if(!gameOver and gc.getPlayerHandSize() > 2){
+						if(gc.IsPlayerTurn()or ca->isFinished(cpuCardId)){
+							play(2);
+						}else if(ca->isFinished(cpuCardId)){
+							play(2);
+						}
+					}
+
+					//debug1.y = 1.0 - debug1.y;
+					//int idx = 0;
+					//const glm::mat4 cur = SC.TI[4].I[idx].Wm;
+					// Flip around Z (you used {0,0,1}); choose localAxis=true to spin around card’s own axis
+					//cardAnim.startFlipFromCurrent(4, idx, cur, 1.0f, glm::vec3(0,0,1), /*localAxis=*/true);
+				}
+			} else {
+				if((curDebounce == GLFW_KEY_3) && debounce) {
+					debounce = false;
+					curDebounce = 0;
+				}
+			}
+
+			if(glfwGetKey(window, GLFW_KEY_R)) {
+				if(!debounce) {
+					debounce = true;
+					curDebounce = GLFW_KEY_R;
+
+					if (gameOver) {
+						newGame = true;
+						gameOver = false;
+						gc.resetGame();
+					}
+
+
+				}
+			} else {
+				if((curDebounce == GLFW_KEY_R) && debounce) {
+					debounce = false;
+					curDebounce = 0;
+				}
+			}
+
+			if(glfwGetKey(window, GLFW_KEY_O)) {
+				if(!debounce) {
+					debounce = true;
+					curDebounce = GLFW_KEY_O;
+
+					debug1.z = (float)(((int)debug1.z + 64) % 65);
+					std::cout << "Showing bone index: " << debug1.z << "\n";
+				}
+			} else {
+				if((curDebounce == GLFW_KEY_O) && debounce) {
+					debounce = false;
+					curDebounce = 0;
+				}
+			}
+
+			static int curAnim = 0;
+			/*
+			if(glfwGetKey(window, GLFW_KEY_SPACE)) {
+				if(!debounce) {
+					debounce = true;
+					curDebounce = GLFW_KEY_SPACE;
+
+					curAnim = (curAnim + 1) % 5;
+					AB.Start(curAnim, 0.5);
+	std::cout << "Playing anim: " << curAnim << "\n";
+				}
+			} else {
+				if((curDebounce == GLFW_KEY_SPACE) && debounce) {
+					debounce = false;
+					curDebounce = 0;
+				}
+			}
+			*/
+
+			if (glfwGetKey(window, GLFW_KEY_9)) {
+				if (!debounce) {
+					debounce = true;
+					curDebounce = GLFW_KEY_9;
+
+					camSnapped = !camSnapped;   // toggle snap mode
+					std::cout << (camSnapped ? "Camera SNAP ON\n" : "Camera SNAP OFF\n");
+				}
+			} else {
+				if ((curDebounce == GLFW_KEY_9) && debounce) {
+					debounce = false;
+					curDebounce = 0;
+				}
+			}
+
+			// moves the view
+			float deltaT = GameLogic();
+
+			// updated the animation
+			const float SpeedUpAnimFact = 0.85f;
+			AB.Advance(deltaT * SpeedUpAnimFact);
+
+			// defines the global parameters for the uniform
+			const glm::mat4 lightView = glm::rotate(glm::mat4(1), glm::radians(-30.0f), glm::vec3(0.0f,1.0f,0.0f)) * glm::rotate(glm::mat4(1), glm::radians(-45.0f), glm::vec3(1.0f,0.0f,0.0f));
+			const glm::vec3 lightDir = glm::vec3(lightView * glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+
+			GlobalUniformBufferObject gubo{};
+
+			gubo.lightDir = lightDir;
+			gubo.lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+			gubo.eyePos = cameraPos;
+			if (selectedCardIndex >= 0 && selectedCardIndex < (int)playerCards.size()) {
+				gubo.highlightCardIndex = playerCards[selectedCardIndex].id; // actual scene ID
+			} else {
+				gubo.highlightCardIndex = -1; // no card highlighted
+			}
+
+			// defines the local parameters for the uniforms
+			UniformBufferObjectChar uboc{};
+			uboc.debug1 = debug1;
+
+			SKA.Sample(AB);
+			std::vector<glm::mat4> *TMsp = SKA.getTransformMatrices();
+
+			//printMat4("TF[55]", (*TMsp)[55]);
+
+			glm::mat4 AdaptMat =
+				glm::scale(glm::mat4(1.0f), glm::vec3(0.01f)) *
+				glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f,0.0f,0.0f));
+
+			int instanceId;
+			// character
+			for(instanceId = 0; instanceId < SC.TI[0].InstanceCount; instanceId++) {
+				for(int im = 0; im < TMsp->size(); im++) {
+					uboc.mMat[im]   = AdaptMat * (*TMsp)[im];
+					uboc.mvpMat[im] = ViewPrj * uboc.mMat[im];
+					uboc.nMat[im] = glm::inverse(glm::transpose(uboc.mMat[im]));
+					//std::cout << im << "\t";
+					//printMat4("mMat", ubo.mMat[im]);
 				}
 
-
-			}
-		} else {
-			if((curDebounce == GLFW_KEY_R) && debounce) {
-				debounce = false;
-				curDebounce = 0;
-			}
-		}
-
-		if(glfwGetKey(window, GLFW_KEY_O)) {
-			if(!debounce) {
-				debounce = true;
-				curDebounce = GLFW_KEY_O;
-
-				debug1.z = (float)(((int)debug1.z + 64) % 65);
-std::cout << "Showing bone index: " << debug1.z << "\n";
-			}
-		} else {
-			if((curDebounce == GLFW_KEY_O) && debounce) {
-				debounce = false;
-				curDebounce = 0;
-			}
-		}
-
-		static int curAnim = 0;
-		/*
-		if(glfwGetKey(window, GLFW_KEY_SPACE)) {
-			if(!debounce) {
-				debounce = true;
-				curDebounce = GLFW_KEY_SPACE;
-
-				curAnim = (curAnim + 1) % 5;
-				AB.Start(curAnim, 0.5);
-std::cout << "Playing anim: " << curAnim << "\n";
-			}
-		} else {
-			if((curDebounce == GLFW_KEY_SPACE) && debounce) {
-				debounce = false;
-				curDebounce = 0;
-			}
-		}
-		*/
-
-		if (glfwGetKey(window, GLFW_KEY_9)) {
-			if (!debounce) {
-				debounce = true;
-				curDebounce = GLFW_KEY_9;
-
-				camSnapped = !camSnapped;   // toggle snap mode
-				std::cout << (camSnapped ? "Camera SNAP ON\n" : "Camera SNAP OFF\n");
-			}
-		} else {
-			if ((curDebounce == GLFW_KEY_9) && debounce) {
-				debounce = false;
-				curDebounce = 0;
-			}
-		}
-
-		// moves the view
-		float deltaT = GameLogic();
-
-		// updated the animation
-		const float SpeedUpAnimFact = 0.85f;
-		AB.Advance(deltaT * SpeedUpAnimFact);
-
-		// defines the global parameters for the uniform
-		const glm::mat4 lightView = glm::rotate(glm::mat4(1), glm::radians(-30.0f), glm::vec3(0.0f,1.0f,0.0f)) * glm::rotate(glm::mat4(1), glm::radians(-45.0f), glm::vec3(1.0f,0.0f,0.0f));
-		const glm::vec3 lightDir = glm::vec3(lightView * glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
-
-		GlobalUniformBufferObject gubo{};
-
-		gubo.lightDir = lightDir;
-		gubo.lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-		gubo.eyePos = cameraPos;
-		if (selectedCardIndex >= 0 && selectedCardIndex < (int)playerCards.size()) {
-			gubo.highlightCardIndex = playerCards[selectedCardIndex].id; // actual scene ID
-		} else {
-			gubo.highlightCardIndex = -1; // no card highlighted
-		}
-
-		// defines the local parameters for the uniforms
-		UniformBufferObjectChar uboc{};
-		uboc.debug1 = debug1;
-
-		SKA.Sample(AB);
-		std::vector<glm::mat4> *TMsp = SKA.getTransformMatrices();
-
-//printMat4("TF[55]", (*TMsp)[55]);
-
-		glm::mat4 AdaptMat =
-			glm::scale(glm::mat4(1.0f), glm::vec3(0.01f)) *
-			glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f,0.0f,0.0f));
-
-		int instanceId;
-		// character
-		for(instanceId = 0; instanceId < SC.TI[0].InstanceCount; instanceId++) {
-			for(int im = 0; im < TMsp->size(); im++) {
-				uboc.mMat[im]   = AdaptMat * (*TMsp)[im];
-				uboc.mvpMat[im] = ViewPrj * uboc.mMat[im];
-				uboc.nMat[im] = glm::inverse(glm::transpose(uboc.mMat[im]));
-//std::cout << im << "\t";
-//printMat4("mMat", ubo.mMat[im]);
+				SC.TI[0].I[instanceId].DS[0][0]->map(currentImage, &gubo, 0); // Set 0
+				SC.TI[0].I[instanceId].DS[0][1]->map(currentImage, &uboc, 0);  // Set 1
 			}
 
-			SC.TI[0].I[instanceId].DS[0][0]->map(currentImage, &gubo, 0); // Set 0
-			SC.TI[0].I[instanceId].DS[0][1]->map(currentImage, &uboc, 0);  // Set 1
-		}
+			UniformBufferObjectSimp ubos{};
+			// normal objects
+			for(instanceId = 0; instanceId < SC.TI[1].InstanceCount; instanceId++) {
+				ubos.mMat   = SC.TI[1].I[instanceId].Wm;
+				ubos.mvpMat = ViewPrj * ubos.mMat;
+				ubos.nMat   = glm::inverse(glm::transpose(ubos.mMat));
 
-		UniformBufferObjectSimp ubos{};
-		// normal objects
-		for(instanceId = 0; instanceId < SC.TI[1].InstanceCount; instanceId++) {
-			ubos.mMat   = SC.TI[1].I[instanceId].Wm;
-			ubos.mvpMat = ViewPrj * ubos.mMat;
-			ubos.nMat   = glm::inverse(glm::transpose(ubos.mMat));
+				SC.TI[1].I[instanceId].DS[0][0]->map(currentImage, &gubo, 0); // Set 0
+				SC.TI[1].I[instanceId].DS[0][1]->map(currentImage, &ubos, 0);  // Set 1
+			}
 
-			SC.TI[1].I[instanceId].DS[0][0]->map(currentImage, &gubo, 0); // Set 0
-			SC.TI[1].I[instanceId].DS[0][1]->map(currentImage, &ubos, 0);  // Set 1
-		}
+			// skybox pipeline
+			skyBoxUniformBufferObject sbubo{};
+			sbubo.mvpMat = ViewPrj * glm::translate(glm::mat4(1), cameraPos) * glm::scale(glm::mat4(1), glm::vec3(100.0f));
+			SC.TI[2].I[0].DS[0][0]->map(currentImage, &sbubo, 0);
 
-		// skybox pipeline
-		skyBoxUniformBufferObject sbubo{};
-		sbubo.mvpMat = ViewPrj * glm::translate(glm::mat4(1), cameraPos) * glm::scale(glm::mat4(1), glm::vec3(100.0f));
-		SC.TI[2].I[0].DS[0][0]->map(currentImage, &sbubo, 0);
+			// PBR objects
+			for(instanceId = 0; instanceId < SC.TI[3].InstanceCount; instanceId++) {
+				ubos.mMat   = SC.TI[3].I[instanceId].Wm;
+				ubos.mvpMat = ViewPrj * ubos.mMat;
+				ubos.nMat   = glm::inverse(glm::transpose(ubos.mMat));
 
-		// PBR objects
-		for(instanceId = 0; instanceId < SC.TI[3].InstanceCount; instanceId++) {
-			ubos.mMat   = SC.TI[3].I[instanceId].Wm;
-			ubos.mvpMat = ViewPrj * ubos.mMat;
-			ubos.nMat   = glm::inverse(glm::transpose(ubos.mMat));
+				SC.TI[3].I[instanceId].DS[0][0]->map(currentImage, &gubo, 0); // Set 0
+				SC.TI[3].I[instanceId].DS[0][1]->map(currentImage, &ubos, 0);  // Set 1
+			}
 
-			SC.TI[3].I[instanceId].DS[0][0]->map(currentImage, &gubo, 0); // Set 0
-			SC.TI[3].I[instanceId].DS[0][1]->map(currentImage, &ubos, 0);  // Set 1
-		}
+			// CARD objects
+			if(newGame) {
+				float animDur = 0.8f; //usually 0.8f
+				float animWait = 0.5f; // usually 0.5f
+				glm::vec3 basePos(-0.177f, 0.563f, 0.0f);
+				float g = gameOver? 0.0f : 1.0f;
+				std::vector<Card> cards = gc.getDeck();
+				std::cout << "Dealing new game, deck size = " << cards.size() << "\n";
+				float i = 0.0f;
+				for(int j = cards.size() - 1; j >= 0; --j) {
+					int id = cards[j].id;
+					float yOffset = 0.00025f * i;
+					glm::vec3 pos = basePos + glm::vec3(0.0f, yOffset, 0.0f);
+					glm::mat4 cur = SC.TI[4].I[id].Wm;
+					ca->addMoveAndRotate(
+						id,
+						cur,
+						pos,
+						animDur*g,
+						180.0f, glm::vec3(0,0,1),
+						animDur*g,
+						false
+					);
+					i=i+1.0f;
+				}
 
-		// CARD objects
-		if(newGame) {
-			float animDur = 0.8f; //usually 0.8f
-			float animWait = 0.5f; // usually 0.5f
-			glm::vec3 basePos(-0.177f, 0.563f, 0.0f);
-			float g = gameOver? 0.0f : 1.0f;
-			std::vector<Card> cards = gc.getDeck();
-			std::cout << "Dealing new game, deck size = " << cards.size() << "\n";
-			float i = 0.0f;
-			for(int j = cards.size() - 1; j >= 0; --j) {
-				int id = cards[j].id;
-				float yOffset = 0.00025f * i;
-				glm::vec3 pos = basePos + glm::vec3(0.0f, yOffset, 0.0f);
+				newGame = false;
+				gameOver = false;
+
+				int id = cards.back().id; // whichever card instance you want
 				glm::mat4 cur = SC.TI[4].I[id].Wm;
+				ca->addMove  (id, cur, glm::vec3(0.0f, 0.563f, 0.0f), 0.8f);
+
 				ca->addMoveAndRotate(
 					id,
 					cur,
-					pos,
-					animDur*g,
+					glm::vec3(0.0f, 0.593f, 0.0f),
+					animDur/2,
 					180.0f, glm::vec3(0,0,1),
-					animDur*g,
+					animDur ,
 					false
 				);
-				i=i+1.0f;
+				ca->addWait(id, cur, animWait*2);
+				ca->addMoveAndRotate(
+					id,
+					cur,
+					glm::vec3(-0.16f, 0.563f, 0.0f),
+					animDur,
+					-90.0f, glm::vec3(0,1, 0),
+					animDur ,
+					false
+				);
+				ca->addGlobalWait(animWait*7);
+
+				playerCards.clear();
+				cpuCards.clear();
+				i=0.0f;
+				float offset = 0.06325f;
+				for (int j=0; j<6; j=j+2) {
+					id = cards.at(j).id;
+					cur = SC.TI[4].I[id].Wm;
+					ca->addMoveAndRotate(
+						id,
+						cur,
+						glm::vec3(0.0f, 0.563f, 0.2f),
+						animDur ,
+						180.0f, glm::vec3(0,1, 0),
+						animDur ,
+						false
+					);
+					ca->addMoveAndRotate(
+						id,
+						cur,
+						glm::vec3(-offset+i, 0.75f, 0.5f),
+						animDur ,
+						-90.0f, glm::vec3(1,0, 0),
+						animDur ,
+						false
+					);
+					ca->addGlobalWait(animWait);
+					id = cards.at(j+1).id;
+					cur = SC.TI[4].I[id].Wm;
+					ca->addMove  (id, cur, glm::vec3(0.0f, 0.563f, -0.2f), 0.8f);
+					ca->addMoveAndRotate(
+						id,
+						cur,
+						glm::vec3(offset-i, 0.75f, -0.5f),
+						animDur ,
+						90.0f, glm::vec3(1,0, 0),
+						animDur ,
+						false
+					);
+					ca->addGlobalWait(animWait);
+					i+=offset;
+					//std::cout << "ello " << j << " x " << i << "\n";
+					playerCards.push_back(cards.at(j));
+					cpuCards.push_back(cards.at(j + 1));
+				}
+				gc.dealInitialCards();
+				cpuChoice = cpuCards.empty() ? -1 : std::rand() % static_cast<int>(cpuCards.size());
+
+
 			}
 
-			newGame = false;
-			gameOver = false;
+			if (ca) ca->tick(dt);
 
-			int id = cards.back().id; // whichever card instance you want
-			glm::mat4 cur = SC.TI[4].I[id].Wm;
-			ca->addMove  (id, cur, glm::vec3(0.0f, 0.563f, 0.0f), 0.8f);
+			UniformBufferObjectCard ubos2{};
+			for(instanceId = 0; instanceId < SC.TI[4].InstanceCount; instanceId++) {
 
-			ca->addMoveAndRotate(
-				id,
-				cur,
-				glm::vec3(0.0f, 0.593f, 0.0f),
-				animDur/2,
-				180.0f, glm::vec3(0,0,1),
-				animDur ,
-				false
-			);
-			ca->addWait(id, cur, animWait*2);
-			ca->addMoveAndRotate(
-				id,
-				cur,
-				glm::vec3(-0.16f, 0.563f, 0.0f),
-				animDur,
-				-90.0f, glm::vec3(0,1, 0),
-				animDur ,
-				false
-			);
-			ca->addGlobalWait(animWait*7);
+				ubos2.mMat   = SC.TI[4].I[instanceId].Wm;
+				ubos2.mvpMat = ViewPrj * ubos2.mMat;
+				ubos2.nMat   = glm::inverse(glm::transpose(ubos2.mMat));
+				ubos2.cardIndex = instanceId;
 
-			playerCards.clear();
-			cpuCards.clear();
-			i=0.0f;
-			float offset = 0.06325f;
-			for (int j=0; j<6; j=j+2) {
-				id = cards.at(j).id;
-				cur = SC.TI[4].I[id].Wm;
-				ca->addMoveAndRotate(
-					id,
-					cur,
-					glm::vec3(0.0f, 0.563f, 0.2f),
-					animDur ,
-					180.0f, glm::vec3(0,1, 0),
-					animDur ,
-					false
-				);
-				ca->addMoveAndRotate(
-					id,
-					cur,
-					glm::vec3(-offset+i, 0.75f, 0.5f),
-					animDur ,
-					-90.0f, glm::vec3(1,0, 0),
-					animDur ,
-					false
-				);
-				ca->addGlobalWait(animWait);
-				id = cards.at(j+1).id;
-				cur = SC.TI[4].I[id].Wm;
-				ca->addMove  (id, cur, glm::vec3(0.0f, 0.563f, -0.2f), 0.8f);
-				ca->addMoveAndRotate(
-					id,
-					cur,
-					glm::vec3(offset-i, 0.75f, -0.5f),
-					animDur ,
-					90.0f, glm::vec3(1,0, 0),
-					animDur ,
-					false
-				);
-				ca->addGlobalWait(animWait);
-				i+=offset;
-				//std::cout << "ello " << j << " x " << i << "\n";
-				playerCards.push_back(cards.at(j));
-    			cpuCards.push_back(cards.at(j + 1));
+				SC.TI[4].I[instanceId].DS[0][0]->map(currentImage, &gubo, 0); // Set 0
+				SC.TI[4].I[instanceId].DS[0][1]->map(currentImage, &ubos2, 0);  // Set 1
 			}
-			gc.dealInitialCards();
-			cpuChoice = cpuCards.empty() ? -1 : std::rand() % static_cast<int>(cpuCards.size());
-
-
-		}
-
-		if (ca) ca->tick(dt);
-
-		UniformBufferObjectCard ubos2{};
-		for(instanceId = 0; instanceId < SC.TI[4].InstanceCount; instanceId++) {
-
-			ubos2.mMat   = SC.TI[4].I[instanceId].Wm;
-			ubos2.mvpMat = ViewPrj * ubos2.mMat;
-			ubos2.nMat   = glm::inverse(glm::transpose(ubos2.mMat));
-			ubos2.cardIndex = instanceId;
-
-			SC.TI[4].I[instanceId].DS[0][0]->map(currentImage, &gubo, 0); // Set 0
-			SC.TI[4].I[instanceId].DS[0][1]->map(currentImage, &ubos2, 0);  // Set 1
-		}
 
 
 
-		// updates the FPS
-		static float elapsedT = 0.0f;
-		static int countedFrames = 0;
+			// updates the FPS
+			static float elapsedT = 0.0f;
+			static int countedFrames = 0;
 
-		countedFrames++;
-		elapsedT += deltaT;
-		if(elapsedT > 1.0f) {
-			float Fps = (float)countedFrames / elapsedT;
+			countedFrames++;
+			elapsedT += deltaT;
+			if(elapsedT > 1.0f) {
+				float Fps = (float)countedFrames / elapsedT;
 
-			std::ostringstream oss;
-			oss << "FPS: " << Fps << "\n";
+				std::ostringstream oss;
+				oss << "FPS: " << Fps << "\n";
 
-			txt.print(1.0f, 1.0f, oss.str(), 1, "CO", false, false, true,TAL_RIGHT,TRH_RIGHT,TRV_BOTTOM,{1.0f,0.0f,0.0f,1.0f},{0.8f,0.8f,0.0f,1.0f});
+				txt.print(1.0f, 1.0f, oss.str(), 1, "CO", false, false, true,TAL_RIGHT,TRH_RIGHT,TRV_BOTTOM,{1.0f,0.0f,0.0f,1.0f},{0.8f,0.8f,0.0f,1.0f});
 
-			elapsedT = 0.0f;
-		    countedFrames = 0;
-		}
-		// Player score
-		txt.print(-0.9f, 0.80f, "Player: " + std::to_string(gc.getPlayerPoints()), 2, "CO", false, false, true,
-				  TAL_LEFT, TRH_LEFT, TRV_TOP,
-				  {1,1,1,1}, {0,0,0,1});
-
-		// CPU score
-		txt.print(0.9f, -0.80f, "CPU: " + std::to_string(gc.getCpuPoints()), 3, "CO", false, false, true,
-				  TAL_RIGHT, TRH_RIGHT, TRV_TOP,
-				  {1,1,1,1}, {0,0,0,1});
-
-
-		// === Turn text handling ===
-		static bool lastTurn = !playerFirst;   // initialize opposite so it triggers once
-		static double turnMsgTimer = 0.0;
-		static std::string turnMsg = "";
-
-		bool currentTurn = playerFirst;
-
-		// Detect turn change
-		if (currentTurn != lastTurn) {
-			lastTurn = currentTurn;
-			turnMsgTimer = glfwGetTime();
-			turnMsg = currentTurn ? "Your turn" : "CPU's turn";
-		}
-
-		// Show message only for 2 seconds
-		double elapsed = glfwGetTime() - turnMsgTimer;
-		if (elapsed < 2.0) {
-			txt.print(0.5f, 0.10f, turnMsg,
-					  4, "CO", false, false, true,
-					  TAL_CENTER, TRH_CENTER, TRV_BOTTOM,
+				elapsedT = 0.0f;
+				countedFrames = 0;
+			}
+			// Player score
+			txt.print(-0.9f, 0.80f, "Player: " + std::to_string(gc.getPlayerPoints()), 2, "CO", false, false, true,
+					  TAL_LEFT, TRH_LEFT, TRV_TOP,
 					  {1,1,1,1}, {0,0,0,1});
-		} else {
-			// Explicitly clear the slot so it disappears
-			txt.print(0.5f, 0.10f, "",
-					  4, "CO", false, false, true,
-					  TAL_CENTER, TRH_CENTER, TRV_BOTTOM,
-					  {0,0,0,0}, {0,0,0,0});  // fully transparent
-		}
 
-		// --- GAME OVER MESSAGE ---
-		if (gameOver) {
-			std::string msg = "DRAW";
-			if (gc.getPlayerPoints()>60) msg = "YOU WON";
-			else if (gc.getCpuPoints()>60) msg = "CPU WON";
-
-			txt.print(0.0f, 0.0f, "GAME OVER - " + msg,
-					  5, "CO", false, false, false,
-					  TAL_CENTER, TRH_CENTER, TRV_MIDDLE,
+			// CPU score
+			txt.print(0.9f, -0.80f, "CPU: " + std::to_string(gc.getCpuPoints()), 3, "CO", false, false, true,
+					  TAL_RIGHT, TRH_RIGHT, TRV_TOP,
 					  {1,1,1,1}, {0,0,0,1});
-		}
 
-		txt.updateCommandBuffer();
+
+			// === Turn text handling ===
+			static bool lastTurn = !playerFirst;   // initialize opposite so it triggers once
+			static double turnMsgTimer = 0.0;
+			static std::string turnMsg = "";
+
+			bool currentTurn = playerFirst;
+
+			// Detect turn change
+			if (currentTurn != lastTurn) {
+				lastTurn = currentTurn;
+				turnMsgTimer = glfwGetTime();
+				turnMsg = currentTurn ? "Your turn" : "CPU's turn";
+			}
+
+			// Show message only for 2 seconds
+			double elapsed = glfwGetTime() - turnMsgTimer;
+			if (elapsed < 2.0) {
+				txt.print(0.5f, 0.10f, turnMsg,
+						  4, "CO", false, false, true,
+						  TAL_CENTER, TRH_CENTER, TRV_BOTTOM,
+						  {1,1,1,1}, {0,0,0,1});
+			} else {
+				// Explicitly clear the slot so it disappears
+				txt.print(0.5f, 0.10f, "",
+						  4, "CO", false, false, true,
+						  TAL_CENTER, TRH_CENTER, TRV_BOTTOM,
+						  {0,0,0,0}, {0,0,0,0});  // fully transparent
+			}
+
+			// --- GAME OVER MESSAGE ---
+			if (gameOver) {
+				std::string msg = "DRAW";
+				if (gc.getPlayerPoints()>60) msg = "YOU WON";
+				else if (gc.getCpuPoints()>60) msg = "CPU WON";
+
+				txt.print(0.0f, 0.0f, "GAME OVER - " + msg,
+						  5, "CO", false, false, false,
+						  TAL_CENTER, TRH_CENTER, TRV_MIDDLE,
+						  {1,1,1,1}, {0,0,0,1});
+			}
+
+			txt.updateCommandBuffer();
+		}
 	}
 
 	float GameLogic() {
