@@ -147,7 +147,7 @@ class BRISCOLA : public BaseProject {
 
 	glm::vec4 debug1 = glm::vec4(0);
 
-	int selectedCardIndex = 0;
+	int selectedCardIndex = -1;
 
 	// Here you set the main application parameters
 	void setWindowParameters() {
@@ -825,6 +825,7 @@ std::cout << "\nLoading the scene\n\n";
 					// Confirm play of the selected card
 					int idx = selectedCardIndex;
 					play(idx);
+					selectedCardIndex = -1; //reset the index
 				}
 			}
 		} else if ((curDebounce == GLFW_KEY_SPACE) && debounce) {
@@ -1184,40 +1185,55 @@ std::cout << "Playing anim: " << curAnim << "\n";
 		    countedFrames = 0;
 		}
 		// Player score
-		txt.print(0.05f, 0.95f, "Player: " + std::to_string(gc.getPlayerPoints()), 2, "CO", false, false, true,
+		txt.print(-0.9f, 0.80f, "Player: " + std::to_string(gc.getPlayerPoints()), 2, "CO", false, false, true,
 				  TAL_LEFT, TRH_LEFT, TRV_TOP,
 				  {1,1,1,1}, {0,0,0,1});
 
 		// CPU score
-		txt.print(0.95f, 0.95f, "CPU: " + std::to_string(gc.getCpuPoints()), 3, "CO", false, false, true,
+		txt.print(0.9f, -0.80f, "CPU: " + std::to_string(gc.getCpuPoints()), 3, "CO", false, false, true,
 				  TAL_RIGHT, TRH_RIGHT, TRV_TOP,
 				  {1,1,1,1}, {0,0,0,1});
 
-		// Turn
-		txt.print(0.5f, 0.10f, gc.IsPlayerTurn() ? "Your turn" : "CPU's turn", 4, "CO", false, false, true,
-				  TAL_CENTER, TRH_CENTER, TRV_BOTTOM,
-				  {0,1,0,1}, {0,0,0,1});
+
+		// === Turn text handling ===
+		static bool lastTurn = !playerFirst;   // initialize opposite so it triggers once
+		static double turnMsgTimer = 0.0;
+		static std::string turnMsg = "";
+
+		bool currentTurn = playerFirst;
+
+		// Detect turn change
+		if (currentTurn != lastTurn) {
+			lastTurn = currentTurn;
+			turnMsgTimer = glfwGetTime();
+			turnMsg = currentTurn ? "Your turn" : "CPU's turn";
+		}
+
+		// Show message only for 2 seconds
+		double elapsed = glfwGetTime() - turnMsgTimer;
+		if (elapsed < 2.0) {
+			txt.print(0.5f, 0.10f, turnMsg,
+					  4, "CO", false, false, true,
+					  TAL_CENTER, TRH_CENTER, TRV_BOTTOM,
+					  {1,1,1,1}, {0,0,0,1});
+		} else {
+			// Explicitly clear the slot so it disappears
+			txt.print(0.5f, 0.10f, "",
+					  4, "CO", false, false, true,
+					  TAL_CENTER, TRH_CENTER, TRV_BOTTOM,
+					  {0,0,0,0}, {0,0,0,0});  // fully transparent
+		}
 
 		// --- GAME OVER MESSAGE ---
 		if (gameOver) {
-			txt.print(0.5f, 0.5f, "GAME OVER", 5, "CO", false, false, true,
+			std::string msg = "DRAW";
+			if (gc.getPlayerPoints()>60) msg = "YOU WON";
+			else if (gc.getCpuPoints()>60) msg = "CPU WON";
+
+			txt.print(0.0f, 0.0f, "GAME OVER - " + msg,
+					  5, "CO", false, false, false,
 					  TAL_CENTER, TRH_CENTER, TRV_MIDDLE,
-					  {1,0,0,1}, {0,0,0,1});
-			if (gc.getPlayerPoints()>60) {
-				txt.print(0.5f, 0.5f, "YOU WON", 6, "CO", false, false, true,
-					  TAL_CENTER, TRH_CENTER, TRV_MIDDLE,
-					  {1,0,0,1}, {0,0,0,1});
-			}
-			if (gc.getCpuPoints()>60) {
-				txt.print(0.5f, 0.5f, "CPU WON", 6, "CO", false, false, true,
-					  TAL_CENTER, TRH_CENTER, TRV_MIDDLE,
-					  {1,0,0,1}, {0,0,0,1});
-			}
-			else {
-				txt.print(0.5f, 0.5f, "DRAW", 6, "CO", false, false, true,
-					  TAL_CENTER, TRH_CENTER, TRV_MIDDLE,
-					  {1,0,0,1}, {0,0,0,1});
-			}
+					  {1,1,1,1}, {0,0,0,1});
 		}
 
 		txt.updateCommandBuffer();
