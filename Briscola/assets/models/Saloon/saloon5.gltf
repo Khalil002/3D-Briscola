@@ -1,0 +1,176 @@
+{
+    "asset": {
+        "version": "2.0",
+        "generator": "Open Asset Import Library (assimp v5.4.0)"
+    },
+    "extensionsUsed": [
+        "KHR_materials_volume",
+        "FB_ngon_encoding"
+    ],
+    "accessors": [
+        {
+            "bufferView": 0,
+            "byteOffset": 0,
+            "componentType": 5126,
+            "count": 94050,
+            "type": "VEC3",
+            "max": [
+                113.88711547851563,
+                78.74018859863281,
+                102.62422180175781
+            ],
+            "min": [
+                -115.35679626464844,
+                -1.0528637170791626,
+                -102.7065200805664
+            ]
+        },
+        {
+            "bufferView": 1,
+            "byteOffset": 0,
+            "componentType": 5126,
+            "count": 94050,
+            "type": "VEC3",
+            "max": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "min": [
+                -1.0,
+                -1.0,
+                -1.0
+            ]
+        },
+        {
+            "bufferView": 2,
+            "byteOffset": 0,
+            "componentType": 5126,
+            "count": 94050,
+            "type": "VEC2",
+            "max": [
+                0.9979618787765503,
+                1.0
+            ],
+            "min": [
+                -1.9195621092649162e-8,
+                0.0
+            ]
+        },
+        {
+            "bufferView": 3,
+            "byteOffset": 0,
+            "componentType": 5125,
+            "count": 236538,
+            "type": "SCALAR",
+            "max": [
+                94049
+            ],
+            "min": [
+                0
+            ]
+        }
+    ],
+    "buffers": [
+        {
+            "byteLength": 3955752,
+            "uri": "saloon5_0.bin"
+        }
+    ],
+    "bufferViews": [
+        {
+            "buffer": 0,
+            "byteOffset": 0,
+            "byteLength": 1128600,
+            "target": 34962
+        },
+        {
+            "buffer": 0,
+            "byteOffset": 1128600,
+            "byteLength": 1128600,
+            "target": 34962
+        },
+        {
+            "buffer": 0,
+            "byteOffset": 2257200,
+            "byteLength": 752400,
+            "target": 34962
+        },
+        {
+            "buffer": 0,
+            "byteOffset": 3009600,
+            "byteLength": 946152,
+            "target": 34963
+        }
+    ],
+    "images": [
+        {
+            "uri": "textures/image_0.png"
+        }
+    ],
+    "materials": [
+        {
+            "name": "SaloonMaterial",
+            "pbrMetallicRoughness": {
+                "baseColorTexture": {
+                    "index": 0
+                },
+                "metallicFactor": 0.0,
+                "roughnessFactor": 0.5
+            },
+            "doubleSided": true
+        }
+    ],
+    "meshes": [
+        {
+            "name": "meshes[0]",
+            "primitives": [
+                {
+                    "mode": 4,
+                    "material": 0,
+                    "indices": 3,
+                    "attributes": {
+                        "POSITION": 0,
+                        "NORMAL": 1,
+                        "TEXCOORD_0": 2
+                    }
+                }
+            ]
+        }
+    ],
+    "nodes": [
+        {
+            "name": "saloon5",
+            "children": [
+                1
+            ]
+        },
+        {
+            "name": "Model",
+            "mesh": 0,
+            "extras": {
+                "name": "Model"
+            }
+        }
+    ],
+    "samplers": [
+        {
+            "magFilter": 9729,
+            "minFilter": 9987
+        }
+    ],
+    "scenes": [
+        {
+            "nodes": [
+                0
+            ]
+        }
+    ],
+    "textures": [
+        {
+            "source": 0,
+            "sampler": 0
+        }
+    ],
+    "scene": 0
+}
