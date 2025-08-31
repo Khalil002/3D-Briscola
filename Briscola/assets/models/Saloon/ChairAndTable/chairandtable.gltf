@@ -1,0 +1,176 @@
+{
+    "asset": {
+        "version": "2.0",
+        "generator": "Open Asset Import Library (assimp v5.4.0)"
+    },
+    "extensionsUsed": [
+        "KHR_materials_volume",
+        "FB_ngon_encoding"
+    ],
+    "accessors": [
+        {
+            "bufferView": 0,
+            "byteOffset": 0,
+            "componentType": 5126,
+            "count": 8625,
+            "type": "VEC3",
+            "max": [
+                -61.1522331237793,
+                20.564964294433594,
+                25.24399757385254
+            ],
+            "min": [
+                -87.50029754638672,
+                0.7361240386962891,
+                -12.013006210327148
+            ]
+        },
+        {
+            "bufferView": 1,
+            "byteOffset": 0,
+            "componentType": 5126,
+            "count": 8625,
+            "type": "VEC3",
+            "max": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "min": [
+                -1.0,
+                -1.0,
+                -1.0
+            ]
+        },
+        {
+            "bufferView": 2,
+            "byteOffset": 0,
+            "componentType": 5126,
+            "count": 8625,
+            "type": "VEC2",
+            "max": [
+                0.897570013999939,
+                0.5157135128974915
+            ],
+            "min": [
+                0.06700220704078674,
+                0.3268418312072754
+            ]
+        },
+        {
+            "bufferView": 3,
+            "byteOffset": 0,
+            "componentType": 5125,
+            "count": 28080,
+            "type": "SCALAR",
+            "max": [
+                8624
+            ],
+            "min": [
+                0
+            ]
+        }
+    ],
+    "buffers": [
+        {
+            "byteLength": 388320,
+            "uri": "chairandtable_0.bin"
+        }
+    ],
+    "bufferViews": [
+        {
+            "buffer": 0,
+            "byteOffset": 0,
+            "byteLength": 103500,
+            "target": 34962
+        },
+        {
+            "buffer": 0,
+            "byteOffset": 103500,
+            "byteLength": 103500,
+            "target": 34962
+        },
+        {
+            "buffer": 0,
+            "byteOffset": 207000,
+            "byteLength": 69000,
+            "target": 34962
+        },
+        {
+            "buffer": 0,
+            "byteOffset": 276000,
+            "byteLength": 112320,
+            "target": 34963
+        }
+    ],
+    "images": [
+        {
+            "uri": "textures/image_0.png"
+        }
+    ],
+    "materials": [
+        {
+            "name": "ChairAndTableMaterial",
+            "pbrMetallicRoughness": {
+                "baseColorTexture": {
+                    "index": 0
+                },
+                "metallicFactor": 0.2883003056049347,
+                "roughnessFactor": 0.8929713368415833
+            },
+            "doubleSided": true
+        }
+    ],
+    "meshes": [
+        {
+            "name": "meshes[0]",
+            "primitives": [
+                {
+                    "mode": 4,
+                    "material": 0,
+                    "indices": 3,
+                    "attributes": {
+                        "POSITION": 0,
+                        "NORMAL": 1,
+                        "TEXCOORD_0": 2
+                    }
+                }
+            ]
+        }
+    ],
+    "nodes": [
+        {
+            "name": "chairandtable",
+            "children": [
+                1
+            ]
+        },
+        {
+            "name": "ChairAndTable",
+            "mesh": 0,
+            "extras": {
+                "name": "ChairAndTable"
+            }
+        }
+    ],
+    "samplers": [
+        {
+            "magFilter": 9729,
+            "minFilter": 9987
+        }
+    ],
+    "scenes": [
+        {
+            "nodes": [
+                0
+            ]
+        }
+    ],
+    "textures": [
+        {
+            "source": 0,
+            "sampler": 0
+        }
+    ],
+    "scene": 0
+}
