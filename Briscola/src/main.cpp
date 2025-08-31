@@ -7,11 +7,11 @@
 #include "modules/TextMaker.hpp"
 #include "modules/Scene.hpp"
 #include "modules/Animations.hpp"
-#include <glm/gtx/quaternion.hpp>
+
 #include "gamecontroller.h"
-//#include <boost/thread.hpp>
-#include <stack>
 #include "modules/CardAnimator.hpp"
+
+#include <stack>
 #include <random>
 
 /**std::ostream& operator<<(std::ostream& os, const glm::mat4& mat) {
