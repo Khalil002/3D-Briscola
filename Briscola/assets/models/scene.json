@@ -8,7 +8,7 @@
 		{"id": "ct", "file": "assets/models/MainSceneEnvOnly.gltf", "format":"GLTF"},
     {"id": "sa", "file": "assets/models/saloon5.gltf", "format":"GLTF"},
     {"id": "tb", "file": "assets/models/Table.gltf", "format":"GLTF"},
-    {"id": "ch", "file": "assets/models/chair.gltf", "format":"GLTF"}
+    {"id": "ch", "file": "assets/models/chair01.gltf", "format":"GLTF"}
 	],
 	"models": [
 		{"id": "hm0",  "VD": "VDchar",  "model": "Mesh", "node": "Ch01_Body", "meshId": 0, "asset": "hm", "format":"ASSET"},
@@ -26,16 +26,16 @@
 		{"id": "st",    "texture": "assets/textures/uomo/Ch01_1001_Diffuse.png",	   "format": "C"},
 		{"id": "pnois", "texture": "assets/textures/Perlin_noise.png", "format": "C"},
 		{"id": "main", "texture": "assets/textures/textures0.png", "format": "C"},
-		{"id": "skybox", "texture": "assets/textures/skybox_2.jpg", "format": "C"},
+		{"id": "skybox", "texture": "assets/textures/dark_skybox.png", "format": "C"},
 		{"id": "table", "texture": "assets/textures/table_texture.jpg", "format": "C"},
-		{"id": "grass_ground", "texture": "assets/textures/grass_ground.jpg", "format": "C"},
+		{"id": "grass_ground", "texture": "assets/textures/grass_block.jpg", "format": "C"},
 		{"id": "PavementConcreteNM", "texture": "assets/textures/MainScene/PavementConcreteNM.png", "format": "D"},
 		{"id": "scbmt", "texture": "assets/textures/SoccerBall/Untitled.png", "format": "D"},
 		{"id": "Untitled", "texture": "assets/textures/MainScene/Untitled.png", "format": "D"},
 		{"id": "card_atlas", "texture": "assets/textures/cards_atlas.png", "format": "C"},
 		{"id": "card_back", "texture": "assets/textures/card_back.png", "format": "C"},
     {"id": "saloon_tex", "texture": "assets/textures/saloon.png", "format": "C"},
-    {"id": "chair_tex", "texture": "assets/textures/chair.jpg", "format": "C"},
+    {"id": "chair_tex", "texture": "assets/textures/chair01.jpg", "format": "C"},
     {"id": "table_tex", "texture": "assets/textures/table.jpg", "format": "C"}
 	],
 	"instances": [
@@ -50,15 +50,14 @@
 				"eulerAngles" : [0, 0, 0],
 				"scale": [0.0281, 0.0281, 0.0281]},
         {"id": "chair0",  "model": "ch_model",   "texture": ["chair_tex", "pnois"],
-				"translate": [2.1, 0, -0.2],
-				"eulerAngles" : [0, 10, 0],
+				"translate": [0, 0, 0.6],
+				"eulerAngles" : [0, 0, 0],
 				"scale": [0.0281, 0.0281, 0.0281]},
           {"id": "chair1",  "model": "ch_model",   "texture": ["chair_tex", "pnois"],
-            "translate": [2.1, 0, -0.2],
-            "eulerAngles" : [0, 0, 0],
+            "translate": [0, 0, -0.6],
+            "eulerAngles" : [0, 180, 0],
             "scale": [0.0281, 0.0281, 0.0281]}
 		]},
-
 
 		{"technique": "SkyBox", "elements": [
 			{"id": "skybox",  "model": "skybox",   "texture": ["skybox"]}

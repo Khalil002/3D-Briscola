@@ -1227,8 +1227,8 @@ class BRISCOLA : public BaseProject {
 		// Player starting point
 		const glm::vec3 StartingPosition = glm::vec3(0.0f, 1.0f, 0.75f);
 		// Camera target height and distance
-		static float camHeight = 0.5625f;
-		static float camDist = 5;
+		static float camHeight = 0.0f;
+		static float camDist = 0.75;
 		// Camera Pitch limits
 		const float minPitch = glm::radians(-8.75f);
 		const float maxPitch = glm::radians(60.0f);
@@ -1238,7 +1238,7 @@ class BRISCOLA : public BaseProject {
 		const float MOVE_SPEED_RUN  = 5.0f;
 		const float ZOOM_SPEED = MOVE_SPEED_BASE * 1.5f;
 		const float MAX_CAM_DIST =  7.5;
-		const float MIN_CAM_DIST =  1.5;
+		const float MIN_CAM_DIST =  0.75;
 
 		// Integration with the timers and the controllers
 		float deltaT;
@@ -1294,6 +1294,8 @@ class BRISCOLA : public BaseProject {
 		glm::vec3 uz = glm::rotate(glm::mat4(1.0f), Yaw, glm::vec3(0,1,0)) * glm::vec4(0,0,-1,1);
 		Pos = Pos + MOVE_SPEED * m.x * ux * deltaT;
 		Pos = Pos - MOVE_SPEED * m.z * uz * deltaT;
+
+		//if(camSnapped) Pos = StartingPosition;
 
 		camHeight += MOVE_SPEED * m.y * deltaT;
 		// Rotation
