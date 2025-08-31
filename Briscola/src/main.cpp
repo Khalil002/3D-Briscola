@@ -74,7 +74,6 @@ enum class GameState {
 	PLAYING,
 	GAME_OVER
 };
-
 	
 // MAIN !
 class BRISCOLA : public BaseProject {
@@ -101,29 +100,24 @@ class BRISCOLA : public BaseProject {
 	std::vector<TechniqueRef> PRs;
 	//*DBG*/Model MS;
 	//*DBG*/DescriptorSet SSD;
-	
-	// To support animation
 
-	bool camSnapped = true;      // toggle with key '9'
-	bool newGame;
-
-	// Briscola game controller
+	// Briscola game and animation
 	GameController gc;
-	Player player;
-	std::vector<Card> cardsOnTable; // cards currently on the table
+	GameState gameState;
 	std::vector<Card> playerCards;
 	std::vector<Card> cpuCards;
 	std::vector<Card> playerPile;
 	std::vector<Card> cpuPile;
+	std::unique_ptr<CardAnimator> ca;
 	int cpuChoice;
 	int cpuCardId;
+	int menuIndex; // 0 = Play, 1 = Exit
+	int selectedCardIndex;
+	bool camSnapped;// toggle with key '9'
 	bool playerFirst;
+	bool newGame;
 	bool gameOver;
-	int selectedCardIndex = -1;
-	GameState gameState;
-	int menuIndex = 0; // 0 = Play, 1 = Exit
 	
-	std::unique_ptr<CardAnimator> ca;
 	// to provide textual feedback
 	TextMaker txt;
 
@@ -360,19 +354,17 @@ class BRISCOLA : public BaseProject {
 		// submits the main command buffer
 		submitCommandBuffer("main", 0, populateCommandBufferAccess, this);
 
+		// Prepares for showing the FPS count
+		txt.print(1.0f, 1.0f, "FPS:",1,"CO",false,false,true,TAL_RIGHT,TRH_RIGHT,TRV_BOTTOM,{1.0f,0.0f,0.0f,1.0f},{0.8f,0.8f,0.0f,1.0f});
+
 		gameState = GameState::MENU;
 		camSnapped = true;
-
-		// Create once (e.g., in BRISCOLA::localInit after SC is ready)
+		menuIndex = 0;
+		selectedCardIndex = -1;
 		ca = std::make_unique<CardAnimator>(
 			[this](int idx, const glm::mat4& M){ SC.TI[4].I[idx].Wm = M; },
 			[this](int idx){ return SC.TI[4].I[idx].Wm; }
 		);
-
-// Or run multiple cards at once by calling again with different idx.
-
-		// Prepares for showing the FPS count
-		txt.print(1.0f, 1.0f, "FPS:",1,"CO",false,false,true,TAL_RIGHT,TRH_RIGHT,TRV_BOTTOM,{1.0f,0.0f,0.0f,1.0f},{0.8f,0.8f,0.0f,1.0f});
 	}
 
 	// Here you create your pipelines and Descriptor Sets!
@@ -450,6 +442,48 @@ class BRISCOLA : public BaseProject {
 
 
 	//Game Animations
+	void initCardPosition() {
+		// Put player cards back to their base (rest) slots.
+		// Slots (left, middle, right) match how you already place them.
+		const float offset = 0.06325f;
+		static const glm::vec3 baseSlots[3] = {
+			glm::vec3(-offset, 0.75f,  0.5f), // left
+			glm::vec3( 0.0f,   0.75f,  0.5f), // middle
+			glm::vec3( offset, 0.75f,  0.5f)  // right
+		};
+
+		const int n = static_cast<int>(playerCards.size());
+		for (int i = 0; i < n && i < 3; ++i) {
+			int id = playerCards[i].id;
+			glm::mat4 M = SC.TI[4].I[id].Wm;          // keep current rotation/scale
+			M[3] = glm::vec4(baseSlots[i], 1.0f);     // replace only translation
+			SC.TI[4].I[id].Wm = M;
+		}
+
+	}
+
+	void highlightCard(int index) {
+		if (index < 0 || index >= static_cast<int>(playerCards.size())) return;
+
+		// First reset everyone to their base slots
+		initCardPosition();
+
+		// raise the selected one slightly (on Y only)
+		const float offset = 0.06325f;
+		static const glm::vec3 baseSlots[3] = {
+			glm::vec3(-offset, 0.75f,  0.5f),
+			glm::vec3( 0.0f,   0.75f,  0.5f),
+			glm::vec3( offset, 0.75f,  0.5f)
+		};
+
+		const float raise = 0.035f;  // tweakable
+		int id = playerCards[index].id;
+		glm::mat4 M = SC.TI[4].I[id].Wm;
+		glm::vec3 raised = baseSlots[index] + glm::vec3(0.0f, raise, 0.0f);
+		M[3] = glm::vec4(raised, 1.0f);
+		SC.TI[4].I[id].Wm = M;
+	}
+
 	void moveToCenter(bool isPlayer, int id1, const glm::mat4& cur1) {
 		float p = isPlayer ? 1.0f : -1.0f;
 		float y = isPlayer ? 0.56325f : 0.563f;
@@ -1026,21 +1060,6 @@ class BRISCOLA : public BaseProject {
 				}
 			}
 
-			if(glfwGetKey(window, GLFW_KEY_O)) {
-				if(!debounce) {
-					debounce = true;
-					curDebounce = GLFW_KEY_O;
-
-					debug1.z = (float)(((int)debug1.z + 64) % 65);
-					std::cout << "Showing bone index: " << debug1.z << "\n";
-				}
-			} else {
-				if((curDebounce == GLFW_KEY_O) && debounce) {
-					debounce = false;
-					curDebounce = 0;
-				}
-			}
-
 			if (glfwGetKey(window, GLFW_KEY_9)) {
 				if (!debounce) {
 					debounce = true;
@@ -1079,32 +1098,7 @@ class BRISCOLA : public BaseProject {
 			gubo.eyePos = cameraPos;
 
 			// defines the local parameters for the uniforms
-			UniformBufferObjectChar uboc{};
-			uboc.debug1 = debug1;
-
-			SKA.Sample(AB);
-			std::vector<glm::mat4> *TMsp = SKA.getTransformMatrices();
-
-			//printMat4("TF[55]", (*TMsp)[55]);
-
-			glm::mat4 AdaptMat =
-				glm::scale(glm::mat4(1.0f), glm::vec3(0.01f)) *
-				glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f,0.0f,0.0f));
-
 			int instanceId;
-			// character
-			for(instanceId = 0; instanceId < SC.TI[0].InstanceCount; instanceId++) {
-				for(int im = 0; im < TMsp->size(); im++) {
-					uboc.mMat[im]   = AdaptMat * (*TMsp)[im];
-					uboc.mvpMat[im] = ViewPrj * uboc.mMat[im];
-					uboc.nMat[im] = glm::inverse(glm::transpose(uboc.mMat[im]));
-					//std::cout << im << "\t";
-					//printMat4("mMat", ubo.mMat[im]);
-				}
-
-				SC.TI[0].I[instanceId].DS[0][0]->map(currentImage, &gubo, 0); // Set 0
-				SC.TI[0].I[instanceId].DS[0][1]->map(currentImage, &uboc, 0);  // Set 1
-			}
 
 			UniformBufferObjectSimp ubos{};
 			// normal objects
@@ -1355,46 +1349,7 @@ class BRISCOLA : public BaseProject {
 
 		return deltaT;
 	}
-	void initCardPosition() {
-		// Put player cards back to their base (rest) slots.
-		// Slots (left, middle, right) match how you already place them.
-		const float offset = 0.06325f;
-		static const glm::vec3 baseSlots[3] = {
-			glm::vec3(-offset, 0.75f,  0.5f), // left
-			glm::vec3( 0.0f,   0.75f,  0.5f), // middle
-			glm::vec3( offset, 0.75f,  0.5f)  // right
-		};
 
-		const int n = static_cast<int>(playerCards.size());
-		for (int i = 0; i < n && i < 3; ++i) {
-			int id = playerCards[i].id;
-			glm::mat4 M = SC.TI[4].I[id].Wm;          // keep current rotation/scale
-			M[3] = glm::vec4(baseSlots[i], 1.0f);     // replace only translation
-			SC.TI[4].I[id].Wm = M;
-		}
-
-	}
-	void highlightCard(int index) {
-		if (index < 0 || index >= static_cast<int>(playerCards.size())) return;
-
-		// First reset everyone to their base slots
-		initCardPosition();
-
-		// raise the selected one slightly (on Y only)
-		const float offset = 0.06325f;
-		static const glm::vec3 baseSlots[3] = {
-			glm::vec3(-offset, 0.75f,  0.5f),
-			glm::vec3( 0.0f,   0.75f,  0.5f),
-			glm::vec3( offset, 0.75f,  0.5f)
-		};
-
-		const float raise = 0.035f;  // tweakable
-		int id = playerCards[index].id;
-		glm::mat4 M = SC.TI[4].I[id].Wm;
-		glm::vec3 raised = baseSlots[index] + glm::vec3(0.0f, raise, 0.0f);
-		M[3] = glm::vec4(raised, 1.0f);
-		SC.TI[4].I[id].Wm = M;
-	}
 };
 
 
