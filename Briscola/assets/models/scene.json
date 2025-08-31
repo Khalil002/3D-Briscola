@@ -36,7 +36,8 @@
 		{"id": "card_back", "texture": "assets/textures/card_back.png", "format": "C"},
     {"id": "saloon_tex", "texture": "assets/textures/saloon.png", "format": "C"},
     {"id": "chair_tex", "texture": "assets/textures/chair01.jpg", "format": "C"},
-    {"id": "table_tex", "texture": "assets/textures/table.jpg", "format": "C"}
+    {"id": "table_tex", "texture": "assets/textures/table.jpg", "format": "C"},
+    {"id": "menu_bg", "texture": "assets/textures/BriscolaMenu1080p2copy.png", "format": "C"}
 	],
 	"instances": [
 		{"technique": "CookTorranceChar", "elements": []}, 
@@ -227,6 +228,10 @@
     "scale": [1, 1, 1]},
   {"id": "card39","model": "card","texture": ["card_atlas", "card_back"],
     "translate": [0.54, 0.85, 0.3],
+    "eulerAngles": [0, 0, 0],
+    "scale": [1, 1, 1]},
+  {"id": "card40","model": "card","texture": ["card_atlas", "menu_bg"],
+    "translate": [0, 0, 0],
     "eulerAngles": [0, 0, 0],
     "scale": [1, 1, 1]}
 ]

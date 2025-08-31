@@ -8,21 +8,20 @@
 
 class CardAnimator {
 public:
-  CardAnimator(std::function<void(int, const glm::mat4&)> setWm,
-               std::function<glm::mat4(int)> getWm)
-  : setMatrix(std::move(setWm)), getMatrix(std::move(getWm)) {}
+  CardAnimator(std::function<void(int, const glm::mat4&)> setWm, 
+    std::function<glm::mat4(int)> getWm)
+    : setMatrix(std::move(setWm)), 
+      getMatrix(std::move(getWm)) {}
 
   // API: enqueue per-card steps (executed sequentially per id)
-  void addMove(int idx, const glm::mat4& curWm,
-               glm::vec3 toPos, float seconds) {
+  void addMove(int idx, const glm::mat4& curWm, glm::vec3 toPos, float seconds=0.0f) {
     Track& t = getOrCreateTrack(idx, curWm);
     Step s; s.type = Step::MOVE; s.move.to = toPos; s.move.dur = dur(seconds);
     t.queue.push_back(s);
   }
 
   // angleDeg in degrees. localAxis=true → rotate around card’s local axis.
-  void addRotate(int idx, const glm::mat4& curWm,
-                 float angleDeg, glm::vec3 axis, float seconds, bool localAxis) {
+  void addRotate(int idx, const glm::mat4& curWm, float angleDeg, glm::vec3 axis, float seconds, bool localAxis) {
     Track& t = getOrCreateTrack(idx, curWm);
     Step s; s.type = Step::ROTATE;
     s.rot.delta = glm::angleAxis(glm::radians(angleDeg), glm::normalize(axis));

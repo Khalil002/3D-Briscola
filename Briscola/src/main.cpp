@@ -117,7 +117,8 @@ class BRISCOLA : public BaseProject {
 	bool playerFirst;
 	bool newGame;
 	bool gameOver;
-	
+	bool isDone;
+
 	// to provide textual feedback
 	TextMaker txt;
 
@@ -286,6 +287,7 @@ class BRISCOLA : public BaseProject {
 		P_PBR.init(this, &VDtan, "shaders/SimplePosNormUvTan.vert.spv", "shaders/PBR.frag.spv", {&DSLglobal, &DSLlocalPBR});
 		Pcard.init(this, &VDsimp, "shaders/card.vert.spv", "shaders/card.frag.spv", {&DSLglobal, &DSLlocalCard});
 		Pcard.setCullMode(VK_CULL_MODE_NONE);
+		//Pcard.setCompareOp(VK_COMPARE_OP_ALWAYS);
 		//Pcard.setFrontFace(VK_FRONT_FACE_CLOCKWISE);
 
 		PRs.resize(5);
@@ -359,6 +361,7 @@ class BRISCOLA : public BaseProject {
 
 		gameState = GameState::MENU;
 		camSnapped = true;
+		isDone = false;
 		menuIndex = 0;
 		selectedCardIndex = -1;
 		ca = std::make_unique<CardAnimator>(
@@ -847,10 +850,55 @@ class BRISCOLA : public BaseProject {
 		static bool debounce = false;
 		static int curDebounce = 0;
 
-		// ==========================
-		// INIT MENU
-		// ==========================
+		// moves the view
+		float deltaT = CameraLogic();
+
+		// Progress card animations by delta time
+		if (ca) ca->tick(deltaT);
+		
+		// defines the global parameters for the uniform
+		const glm::mat4 lightView = glm::rotate(glm::mat4(1), glm::radians(-30.0f), glm::vec3(0.0f,1.0f,0.0f)) * glm::rotate(glm::mat4(1), glm::radians(-45.0f), glm::vec3(1.0f,0.0f,0.0f));
+		const glm::vec3 lightDir = glm::vec3(lightView * glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+		GlobalUniformBufferObject gubo{};
+		gubo.lightDir = lightDir;
+		gubo.lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+		gubo.eyePos = cameraPos;
+
+		// defines the local parameters for the uniforms
+
+		// skybox pipeline
+		skyBoxUniformBufferObject sbubo{};
+		sbubo.mvpMat = ViewPrj * glm::translate(glm::mat4(1), cameraPos) * glm::scale(glm::mat4(1), glm::vec3(100.0f));
+		SC.TI[2].I[0].DS[0][0]->map(currentImage, &sbubo, 0);
+		int id;
+
 		if (gameState == GameState::MENU) {
+			UniformBufferObjectCard ubos2{};
+			id = 40;
+			glm::mat4 cur = SC.TI[4].I[id].Wm;
+			if(!isDone){
+				glm::vec3 eye    = glm::vec3(0.0f, 1.0f, 0.75f);
+				glm::vec3 target = glm::vec3(0.0f, 0.5625f, 0.0f);
+				glm::vec3 forward = glm::normalize(target - eye);
+
+				// Keep it safely beyond the near plane (0.01f).
+				const float menuCardDist = 0.05f;
+				glm::vec3 menuCardPos = eye + forward * menuCardDist;
+				ca->addMove(id, cur,  glm::vec3(0, 0.5, 0));
+				ca->addRotate(id, cur, -90.0f, glm::vec3(0, 1, 0), 0.0f, false);
+				ca->addRotate(id, cur, 245.0f, glm::vec3(1, 0, 0), 0.0f, false);
+				ca->addMove(id, cur,  menuCardPos, 0.0f);
+				isDone = true;
+			}
+			
+			ubos2.mMat = SC.TI[4].I[id].Wm;
+			ubos2.nMat   = glm::inverse(glm::transpose(ubos2.mMat));
+			ubos2.mvpMat = ViewPrj * ubos2.mMat;
+			ubos2.cardIndex = 0;
+			ubos2.highlightCardIndex = -1;
+			SC.TI[4].I[id].DS[0][0]->map(currentImage, &gubo, 0); // Set 0
+			SC.TI[4].I[id].DS[0][1]->map(currentImage, &ubos2, 0);  // Set 1
+
 			if (glfwGetKey(window, GLFW_KEY_UP) && !debounce) {
 				debounce = true; curDebounce = GLFW_KEY_UP;
 				menuIndex = (menuIndex + 1) % 2; // toggle between 0 and 1
@@ -877,6 +925,7 @@ class BRISCOLA : public BaseProject {
 					playerFirst = true;
 					cpuChoice = 0;
 					cpuCardId = 0;
+					ca->addMove(id, cur,  glm::vec3(-1, -1, -1));
 				} else {
 					// Exit
 					glfwSetWindowShouldClose(window, GL_TRUE);
@@ -1075,8 +1124,7 @@ class BRISCOLA : public BaseProject {
 				}
 			}
 
-			// moves the view
-			float deltaT = CameraLogic();
+			
 
 			if(newGame) {
 				drawNewRound();
@@ -1086,62 +1134,47 @@ class BRISCOLA : public BaseProject {
 				cpuChoice = cpuCards.empty() ? -1 : std::rand() % static_cast<int>(cpuCards.size());
 			}
 
-			// Progress card animations by delta time
-			if (ca) ca->tick(deltaT);
-
-			// defines the global parameters for the uniform
-			const glm::mat4 lightView = glm::rotate(glm::mat4(1), glm::radians(-30.0f), glm::vec3(0.0f,1.0f,0.0f)) * glm::rotate(glm::mat4(1), glm::radians(-45.0f), glm::vec3(1.0f,0.0f,0.0f));
-			const glm::vec3 lightDir = glm::vec3(lightView * glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
-			GlobalUniformBufferObject gubo{};
-			gubo.lightDir = lightDir;
-			gubo.lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-			gubo.eyePos = cameraPos;
-
-			// defines the local parameters for the uniforms
-			int instanceId;
+			
 
 			UniformBufferObjectSimp ubos{};
 			// normal objects
-			for(instanceId = 0; instanceId < SC.TI[1].InstanceCount; instanceId++) {
-				ubos.mMat   = SC.TI[1].I[instanceId].Wm;
+			for(id = 0; id < SC.TI[1].InstanceCount; id++) {
+				ubos.mMat   = SC.TI[1].I[id].Wm;
 				ubos.mvpMat = ViewPrj * ubos.mMat;
 				ubos.nMat   = glm::inverse(glm::transpose(ubos.mMat));
 
-				SC.TI[1].I[instanceId].DS[0][0]->map(currentImage, &gubo, 0); // Set 0
-				SC.TI[1].I[instanceId].DS[0][1]->map(currentImage, &ubos, 0);  // Set 1
+				SC.TI[1].I[id].DS[0][0]->map(currentImage, &gubo, 0); // Set 0
+				SC.TI[1].I[id].DS[0][1]->map(currentImage, &ubos, 0);  // Set 1
 			}
 
-			// skybox pipeline
-			skyBoxUniformBufferObject sbubo{};
-			sbubo.mvpMat = ViewPrj * glm::translate(glm::mat4(1), cameraPos) * glm::scale(glm::mat4(1), glm::vec3(100.0f));
-			SC.TI[2].I[0].DS[0][0]->map(currentImage, &sbubo, 0);
+			
 
 			// PBR objects
-			for(instanceId = 0; instanceId < SC.TI[3].InstanceCount; instanceId++) {
-				ubos.mMat   = SC.TI[3].I[instanceId].Wm;
+			for(id = 0; id < SC.TI[3].InstanceCount; id++) {
+				ubos.mMat   = SC.TI[3].I[id].Wm;
 				ubos.mvpMat = ViewPrj * ubos.mMat;
 				ubos.nMat   = glm::inverse(glm::transpose(ubos.mMat));
 
-				SC.TI[3].I[instanceId].DS[0][0]->map(currentImage, &gubo, 0); // Set 0
-				SC.TI[3].I[instanceId].DS[0][1]->map(currentImage, &ubos, 0);  // Set 1
+				SC.TI[3].I[id].DS[0][0]->map(currentImage, &gubo, 0); // Set 0
+				SC.TI[3].I[id].DS[0][1]->map(currentImage, &ubos, 0);  // Set 1
 			}
 
 			// CARD objects
 			UniformBufferObjectCard ubos2{};
-			for(instanceId = 0; instanceId < SC.TI[4].InstanceCount; instanceId++) {
+			for(id = 0; id < SC.TI[4].InstanceCount; id++) {
 
-				ubos2.mMat   = SC.TI[4].I[instanceId].Wm;
+				ubos2.mMat   = SC.TI[4].I[id].Wm;
 				ubos2.mvpMat = ViewPrj * ubos2.mMat;
 				ubos2.nMat   = glm::inverse(glm::transpose(ubos2.mMat));
-				ubos2.cardIndex = instanceId;
+				ubos2.cardIndex = id;
 				if (selectedCardIndex >= 0 && selectedCardIndex < (int)playerCards.size()) {
 					ubos2.highlightCardIndex = playerCards[selectedCardIndex].id; // actual scene ID
 				} else {
 					ubos2.highlightCardIndex = -1; // no card highlighted
 				}
 
-				SC.TI[4].I[instanceId].DS[0][0]->map(currentImage, &gubo, 0); // Set 0
-				SC.TI[4].I[instanceId].DS[0][1]->map(currentImage, &ubos2, 0);  // Set 1
+				SC.TI[4].I[id].DS[0][0]->map(currentImage, &gubo, 0); // Set 0
+				SC.TI[4].I[id].DS[0][1]->map(currentImage, &ubos2, 0);  // Set 1
 			}
 
 			// === Text update section ===
@@ -1222,7 +1255,7 @@ class BRISCOLA : public BaseProject {
 		// Parameters
 		// Camera FOV-y, Near Plane and Far Plane
 		const float FOVy = glm::radians(45.0f);
-		const float nearPlane = 0.1f;
+		const float nearPlane = 0.01f;
 		const float farPlane = 100.f;
 		// Player starting point
 		const glm::vec3 StartingPosition = glm::vec3(0.0f, 1.0f, 0.75f);
@@ -1263,6 +1296,8 @@ class BRISCOLA : public BaseProject {
 
 			cameraPos = eye;
 			World = glm::mat4(1.0f);
+			
+
 			return deltaT;
 		}
 
