@@ -6,12 +6,16 @@
 		{"id": "a3", "file": "assets/models/pointing.gltf", "format":"GLTF"},
 		{"id": "a4", "file": "assets/models/waving.gltf", "format":"GLTF"},
 		{"id": "ct", "file": "assets/models/MainSceneEnvOnly.gltf", "format":"GLTF"},
-    {"id": "sa", "file": "assets/models/Saloon/saloon5.gltf", "format":"GLTF"}
+    {"id": "sa", "file": "assets/models/saloon5.gltf", "format":"GLTF"},
+    {"id": "tb", "file": "assets/models/Table.gltf", "format":"GLTF"},
+    {"id": "ch", "file": "assets/models/chair.gltf", "format":"GLTF"}
 	],
 	"models": [
 		{"id": "hm0",  "VD": "VDchar",  "model": "Mesh", "node": "Ch01_Body", "meshId": 0, "asset": "hm", "format":"ASSET"},
 		{"id": "hm1",  "VD": "VDchar",  "model": "Mesh", "node": "Ch01_Body", "meshId": 1, "asset": "hm", "format":"ASSET"},
     {"id": "sa_model",  "VD": "VDsimp",  "model": "meshes[0]", "node": "Model", "meshId": 0, "asset": "sa", "format":"ASSET"},
+    {"id": "tb_model",  "VD": "VDsimp",  "model": "Table", "node": "Table", "meshId": 0, "asset": "tb", "format":"ASSET"},
+    {"id": "ch_model",  "VD": "VDsimp",  "model": "Cylinder008_Colours_0", "node": "Cylinder008_Colours_0", "meshId": 0, "asset": "ch", "format":"ASSET"},
 		{"id": "gb", "VD": "VDsimp", "model": "assets/models/gelatoBus.mgcg", "format":"MGCG"},
 		{"id": "skybox", "VD": "VDskybox", "model": "assets/models/SkyBoxCube.obj", "format":"OBJ"},
 		{"id": "table", "VD": "VDsimp", "model": "assets/models/table2.obj", "format":"OBJ"},
@@ -30,16 +34,32 @@
 		{"id": "Untitled", "texture": "assets/textures/MainScene/Untitled.png", "format": "D"},
 		{"id": "card_atlas", "texture": "assets/textures/cards_atlas.png", "format": "C"},
 		{"id": "card_back", "texture": "assets/textures/card_back.png", "format": "C"},
-    {"id": "saloon_tex", "texture": "assets/textures/image_0.png", "format": "C"}
+    {"id": "saloon_tex", "texture": "assets/textures/saloon.png", "format": "C"},
+    {"id": "chair_tex", "texture": "assets/textures/chair.jpg", "format": "C"},
+    {"id": "table_tex", "texture": "assets/textures/table.jpg", "format": "C"}
 	],
 	"instances": [
 		{"technique": "CookTorranceChar", "elements": []}, 
 		{"technique": "CookTorranceNoiseSimp", "elements": [
         {"id": "sa0",  "model": "sa_model",   "texture": ["saloon_tex", "pnois"],
-				"translate": [-0.75, 0, 0],
+				"translate": [0.1, 0, -1.5],
+				"eulerAngles" : [0, 90, 0],
+				"scale": [0.0281, 0.0281, 0.0281]},
+        {"id": "table0",  "model": "tb_model",   "texture": ["table_tex", "pnois"],
+				"translate": [2.1, 0, -0.2],
 				"eulerAngles" : [0, 0, 0],
-				"scale": [0.0281, 0.0281, 0.0281]}
-		]}, 
+				"scale": [0.0281, 0.0281, 0.0281]},
+        {"id": "chair0",  "model": "ch_model",   "texture": ["chair_tex", "pnois"],
+				"translate": [2.1, 0, -0.2],
+				"eulerAngles" : [0, 10, 0],
+				"scale": [0.0281, 0.0281, 0.0281]},
+          {"id": "chair1",  "model": "ch_model",   "texture": ["chair_tex", "pnois"],
+            "translate": [2.1, 0, -0.2],
+            "eulerAngles" : [0, 0, 0],
+            "scale": [0.0281, 0.0281, 0.0281]}
+		]},
+
+
 		{"technique": "SkyBox", "elements": [
 			{"id": "skybox",  "model": "skybox",   "texture": ["skybox"]}
 		]}, 

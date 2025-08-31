@@ -747,8 +747,8 @@ class BRISCOLA : public BaseProject {
 	}
 
 	void play(int playerChoice){
-		glm::vec3 playerPilePos(0.2f, 0.563f, 0.2f);
-		glm::vec3 cpuPilePos(-0.2f, 0.563f, -0.2f);
+		glm::vec3 playerPilePos(0.18f, 0.563f, 0.18f);
+		glm::vec3 cpuPilePos(-0.18f, 0.563f, -0.18f);
 		Card playerCard = playerCards.at(playerChoice);
 		Card cpuCard = cpuCards.at(cpuChoice);
 		int pId = playerCard.id;
