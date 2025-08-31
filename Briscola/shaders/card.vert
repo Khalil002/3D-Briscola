@@ -6,6 +6,7 @@ layout(binding = 0, set = 1) uniform UniformBufferObject {
 	mat4 mMat;
 	mat4 nMat;
 	int cardIndex;
+	int hCardIndex;
 } ubo;
 
 
@@ -17,6 +18,7 @@ layout(location = 0) out vec3 fragPos;
 layout(location = 1) out vec3 fragNorm;
 layout(location = 2) out vec2 fragUV;
 layout(location = 3) flat out int vCardIndex;
+layout(location = 4) flat out int hCardIndex;
 
 void main() {
 	// vertex shader
@@ -31,4 +33,5 @@ void main() {
 	//fragNorm = (ubo.nMat * vec4(inNorm, 0.0)).xyz;
 	fragUV = inUV;
     vCardIndex = ubo.cardIndex;
+	hCardIndex = ubo.hCardIndex;
 }

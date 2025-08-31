@@ -5,11 +5,13 @@
 		{"id": "a2", "file": "assets/models/idle.gltf", "format":"GLTF"},
 		{"id": "a3", "file": "assets/models/pointing.gltf", "format":"GLTF"},
 		{"id": "a4", "file": "assets/models/waving.gltf", "format":"GLTF"},
-		{"id": "ct", "file": "assets/models/MainSceneEnvOnly.gltf", "format":"GLTF"}
+		{"id": "ct", "file": "assets/models/MainSceneEnvOnly.gltf", "format":"GLTF"},
+    {"id": "sa", "file": "assets/models/Saloon/saloon5.gltf", "format":"GLTF"}
 	],
 	"models": [
 		{"id": "hm0",  "VD": "VDchar",  "model": "Mesh", "node": "Ch01_Body", "meshId": 0, "asset": "hm", "format":"ASSET"},
 		{"id": "hm1",  "VD": "VDchar",  "model": "Mesh", "node": "Ch01_Body", "meshId": 1, "asset": "hm", "format":"ASSET"},
+    {"id": "sa_model",  "VD": "VDsimp",  "model": "meshes[0]", "node": "Model", "meshId": 0, "asset": "sa", "format":"ASSET"},
 		{"id": "gb", "VD": "VDsimp", "model": "assets/models/gelatoBus.mgcg", "format":"MGCG"},
 		{"id": "skybox", "VD": "VDskybox", "model": "assets/models/SkyBoxCube.obj", "format":"OBJ"},
 		{"id": "table", "VD": "VDsimp", "model": "assets/models/table2.obj", "format":"OBJ"},
@@ -27,15 +29,16 @@
 		{"id": "scbmt", "texture": "assets/textures/SoccerBall/Untitled.png", "format": "D"},
 		{"id": "Untitled", "texture": "assets/textures/MainScene/Untitled.png", "format": "D"},
 		{"id": "card_atlas", "texture": "assets/textures/cards_atlas.png", "format": "C"},
-		{"id": "card_back", "texture": "assets/textures/card_back.png", "format": "C"}
+		{"id": "card_back", "texture": "assets/textures/card_back.png", "format": "C"},
+    {"id": "saloon_tex", "texture": "assets/textures/image_0.png", "format": "C"}
 	],
 	"instances": [
 		{"technique": "CookTorranceChar", "elements": []}, 
 		{"technique": "CookTorranceNoiseSimp", "elements": [
-			{"id": "table",  "model": "table",   "texture": ["table", "pnois"],
-				"translate": [0, 0, 0],
+        {"id": "sa0",  "model": "sa_model",   "texture": ["saloon_tex", "pnois"],
+				"translate": [-0.75, 0, 0],
 				"eulerAngles" : [0, 0, 0],
-				"scale": [0.75, 0.75, 0.75]}
+				"scale": [0.0281, 0.0281, 0.0281]}
 		]}, 
 		{"technique": "SkyBox", "elements": [
 			{"id": "skybox",  "model": "skybox",   "texture": ["skybox"]}

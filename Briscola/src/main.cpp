@@ -11,20 +11,6 @@
 #include "gamecontroller.h"
 #include "modules/CardAnimator.hpp"
 
-#include <stack>
-#include <random>
-
-/**std::ostream& operator<<(std::ostream& os, const glm::mat4& mat) {
-    for (int row = 0; row < 4; ++row) {
-        os << "| ";
-        for (int col = 0; col < 4; ++col) {
-            os << mat[col][row] << " "; // GLM is column-major!
-        }
-        os << "|\n";
-    }
-    return os;
-}**/
-
 // The uniform buffer object used in this example
 struct VertexChar {
 	glm::vec3 pos;
@@ -55,7 +41,6 @@ struct GlobalUniformBufferObject {
 	alignas(16) glm::vec3 lightDir;
 	alignas(16) glm::vec4 lightColor;
 	alignas(16) glm::vec3 eyePos;
-	alignas(4)  int highlightCardIndex;
 };
 
 struct UniformBufferObjectChar {
@@ -76,13 +61,21 @@ struct UniformBufferObjectCard {
 	alignas(16) glm::mat4 mMat;
 	alignas(16) glm::mat4 nMat;
 	alignas(4)  int cardIndex;
-	int _pad[3];
+	alignas(4)  int highlightCardIndex;
+	int _pad[2];
 };
 
 struct skyBoxUniformBufferObject {
 	alignas(16) glm::mat4 mvpMat;
 };
 
+enum class GameState {
+	MENU,
+	PLAYING,
+	GAME_OVER
+};
+
+	
 // MAIN !
 class BRISCOLA : public BaseProject {
 	protected:
@@ -110,13 +103,9 @@ class BRISCOLA : public BaseProject {
 	//*DBG*/DescriptorSet SSD;
 	
 	// To support animation
-	#define N_ANIMATIONS 5
 
 	bool camSnapped = true;      // toggle with key '9'
 	bool newGame;
-	AnimBlender AB;
-	Animations Anim[N_ANIMATIONS];
-	SkeletalAnimation SKA;
 
 	// Briscola game controller
 	GameController gc;
@@ -130,7 +119,10 @@ class BRISCOLA : public BaseProject {
 	int cpuCardId;
 	bool playerFirst;
 	bool gameOver;
-
+	int selectedCardIndex = -1;
+	GameState gameState;
+	int menuIndex = 0; // 0 = Play, 1 = Exit
+	
 	std::unique_ptr<CardAnimator> ca;
 	// to provide textual feedback
 	TextMaker txt;
@@ -145,19 +137,6 @@ class BRISCOLA : public BaseProject {
 	float Yaw = glm::radians(0.0f);
 	float Pitch = glm::radians(0.0f);
 	float Roll = glm::radians(0.0f);
-
-	glm::vec4 debug1 = glm::vec4(0);
-
-	int selectedCardIndex = -1;
-
-	enum class GameState {
-		MENU,
-		PLAYING,
-		GAME_OVER
-	};
-
-	GameState gameState = GameState::MENU;
-	int menuIndex = 0; // 0 = Play, 1 = Exit
 
 	// Here you set the main application parameters
 	void setWindowParameters() {
@@ -368,18 +347,12 @@ class BRISCOLA : public BaseProject {
 		DPSZs.texturesInPool = 6;
 		DPSZs.setsInPool = 4;
 
-std::cout << "\nLoading the scene\n\n";
+		std::cout << "\nLoading the scene\n\n";
 		if(SC.init(this, /*Npasses*/1, VDRs, PRs, "assets/models/scene.json") != 0) {
 			std::cout << "ERROR LOADING THE SCENE\n";
 			exit(0);
 		}
 		// initializes animations
-		for(int ian = 0; ian < N_ANIMATIONS; ian++) {
-			Anim[ian].init(*SC.As[ian]);
-		}
-		AB.init({{0,32,0.0f,0}, {0,16,0.0f,1}, {0,263,0.0f,2}, {0,83,0.0f,3}, {0,16,0.0f,4}});
-		//AB.init({{0,31,0.0f}});
-		SKA.init(Anim, 5, "Armature|mixamo.com|Layer0", 0);
 
 		// initializes the textual output
 		txt.init(this, windowWidth, windowHeight);
@@ -387,12 +360,8 @@ std::cout << "\nLoading the scene\n\n";
 		// submits the main command buffer
 		submitCommandBuffer("main", 0, populateCommandBufferAccess, this);
 
-		gc.run();
-		newGame = true;
-		playerFirst = true;
-		cpuChoice = 0;
-		cpuCardId = 0;
-		gameOver = true;
+		gameState = GameState::MENU;
+		camSnapped = true;
 
 		// Create once (e.g., in BRISCOLA::localInit after SC is ready)
 		ca = std::make_unique<CardAnimator>(
@@ -456,31 +425,15 @@ std::cout << "\nLoading the scene\n\n";
 		SC.localCleanup();
 		txt.localCleanup();
 
-		for(int ian = 0; ian < N_ANIMATIONS; ian++) {
-			Anim[ian].cleanup();
-		}
-
 		//gc.stop();
 	}
 
-	void printCameraInfo(const glm::vec3 &eye, const glm::vec3 &target) {
-		glm::vec3 dir = glm::normalize(target - eye);
-
-		float yaw   = glm::degrees(atan2(dir.x, dir.z));
-		float pitch = glm::degrees(asin(dir.y));
-
-		std::cout << "Camera Eye: ("
-				<< eye.x << ", " << eye.y << ", " << eye.z << ")\n"
-				<< "Yaw: " << yaw << " deg, "
-				<< "Pitch: " << pitch << " deg\n";
-	}
 	// Here it is the creation of the command buffer:
 	// You send to the GPU all the objects you want to draw,
 	// with their buffers and textures
 	static void populateCommandBufferAccess(VkCommandBuffer commandBuffer, int currentImage, void *Params) {
 		// Simple trick to avoid having always 'T->'
 		// in che code that populates the command buffer!
-//std::cout << "Populating command buffer for " << currentImage << "\n";
 		BRISCOLA *T = (BRISCOLA *)Params;
 		T->populateCommandBuffer(commandBuffer, currentImage);
 	}
@@ -495,24 +448,8 @@ std::cout << "\nLoading the scene\n\n";
 		RP.end(commandBuffer);
 	}
 
-	// Here is where you update the uniforms.
-	// Very likely this will be where you will be writing the logic of your application.
 
-
-
-	static float randRange(float min, float max) {
-		static std::mt19937 rng{std::random_device{}()};
-		std::uniform_real_distribution<float> dist(min, max);
-		return dist(rng);
-	}
-
-	glm::vec3 randomOffset(float radiusXZ, float maxY=0.0f) {
-		return glm::vec3(
-			randRange(-radiusXZ, radiusXZ),   // X jitter
-			0.0f,            // optional Y up jitter
-			randRange(-radiusXZ, radiusXZ)    // Z jitter
-		);
-	}
+	//Game Animations
 	void moveToCenter(bool isPlayer, int id1, const glm::mat4& cur1) {
 		float p = isPlayer ? 1.0f : -1.0f;
 		float y = isPlayer ? 0.56325f : 0.563f;
@@ -605,7 +542,6 @@ std::cout << "\nLoading the scene\n\n";
 		hand.erase(hand.begin());
 	}
 
-
 	void drawCardToHand(bool isPlayer, int cardIndex) {
 		//std::cout << (isPlayer ? "Player" : "CPU") << " draws a card\n";
 
@@ -676,6 +612,104 @@ std::cout << "\nLoading the scene\n\n";
 		}
 
 
+	}
+
+	void drawNewRound(){
+		float animDur = 0.8f; //usually 0.8f
+		float animWait = 0.5f; // usually 0.5f
+		glm::vec3 basePos(-0.177f, 0.563f, 0.0f);
+		float g = gameOver? 0.0f : 1.0f;
+		std::vector<Card> cards = gc.getDeck();
+
+		//Deck
+		float i = 0.0f;
+		for(int j = cards.size() - 1; j >= 0; --j) {
+			int id = cards[j].id;
+			float yOffset = 0.00025f * i;
+			glm::vec3 pos = basePos + glm::vec3(0.0f, yOffset, 0.0f);
+			glm::mat4 cur = SC.TI[4].I[id].Wm;
+			ca->addMoveAndRotate(
+				id,
+				cur,
+				pos,
+				animDur*g,
+				180.0f, glm::vec3(0,0,1),
+				animDur*g,
+				false
+			);
+			i=i+1.0f;
+		}
+
+		//Briscola
+		int id = cards.back().id;
+		glm::mat4 cur = SC.TI[4].I[id].Wm;
+		ca->addMove  (id, cur, glm::vec3(0.0f, 0.563f, 0.0f), 0.8f);
+		ca->addMoveAndRotate(
+			id,
+			cur,
+			glm::vec3(0.0f, 0.593f, 0.0f),
+			animDur/2,
+			180.0f, glm::vec3(0,0,1),
+			animDur ,
+			false
+		);
+		ca->addWait(id, cur, animWait*2);
+		ca->addMoveAndRotate(
+			id,
+			cur,
+			glm::vec3(-0.16f, 0.563f, 0.0f),
+			animDur,
+			-90.0f, glm::vec3(0,1, 0),
+			animDur ,
+			false
+		);
+		ca->addGlobalWait(animWait*7);
+
+		//Hands
+		playerCards.clear();
+		cpuCards.clear();
+		i=0.0f;
+		float offset = 0.06325f;
+		for (int j=0; j<6; j=j+2) {
+			id = cards.at(j).id;
+			cur = SC.TI[4].I[id].Wm;
+			ca->addMoveAndRotate(
+				id,
+				cur,
+				glm::vec3(0.0f, 0.563f, 0.2f),
+				animDur ,
+				180.0f, glm::vec3(0,1, 0),
+				animDur ,
+				false
+			);
+			ca->addMoveAndRotate(
+				id,
+				cur,
+				glm::vec3(-offset+i, 0.75f, 0.5f),
+				animDur ,
+				-90.0f, glm::vec3(1,0, 0),
+				animDur ,
+				false
+			);
+			ca->addGlobalWait(animWait);
+			id = cards.at(j+1).id;
+			cur = SC.TI[4].I[id].Wm;
+			ca->addMove  (id, cur, glm::vec3(0.0f, 0.563f, -0.2f), 0.8f);
+			ca->addMoveAndRotate(
+				id,
+				cur,
+				glm::vec3(offset-i, 0.75f, -0.5f),
+				animDur ,
+				90.0f, glm::vec3(1,0, 0),
+				animDur ,
+				false
+			);
+			ca->addGlobalWait(animWait);
+			i+=offset;
+			//std::cout << "ello " << j << " x " << i << "\n";
+			playerCards.push_back(cards.at(j));
+			cpuCards.push_back(cards.at(j + 1));
+		}
 	}
 
 	void play(int playerChoice){
@@ -773,6 +807,8 @@ std::cout << "\nLoading the scene\n\n";
 		}
 	}
 
+	// Here is where you update the uniforms.
+	// Very likely this will be where you will be writing the logic of your application.
 	void updateUniformBuffer(uint32_t currentImage) {
 		static bool debounce = false;
 		static int curDebounce = 0;
@@ -801,8 +837,12 @@ std::cout << "\nLoading the scene\n\n";
 				if (menuIndex == 0) {
 					// Play
 					gameState = GameState::PLAYING; //PLAYING SELECTED
-					newGame = true; gameOver = false;
-					gc.resetGame();
+					gc.run();
+					newGame = true;
+					gameOver = true;
+					playerFirst = true;
+					cpuChoice = 0;
+					cpuCardId = 0;
 				} else {
 					// Exit
 					glfwSetWindowShouldClose(window, GL_TRUE);
@@ -830,10 +870,6 @@ std::cout << "\nLoading the scene\n\n";
 		// GAME LOGIC
 		// ==========================
 		if (gameState == GameState::PLAYING) {
-			static double prev = glfwGetTime();
-			double now = glfwGetTime();
-			float dt = float(now - prev);
-			prev = now;
 
 			//Reset menu text
 			txt.print(0.0f, 0.2f, "", 10, "CO", false, false, true,
@@ -922,7 +958,6 @@ std::cout << "\nLoading the scene\n\n";
 							play(0);
 						}
 					}
-
 				}
 			} else {
 				if((curDebounce == GLFW_KEY_1) && debounce) {
@@ -943,11 +978,6 @@ std::cout << "\nLoading the scene\n\n";
 							play(1);
 						}
 					}
-					//debug1.y = 1.0 - debug1.y;
-					//int idx = 0;
-					//const glm::mat4 cur = SC.TI[4].I[idx].Wm;
-					// Flip around Z (you used {0,0,1}); choose localAxis=true to spin around card’s own axis
-					//cardAnim.startFlipFromCurrent(4, idx, cur, 1.0f, glm::vec3(0,0,1), /*localAxis=*/true);
 				}
 			} else {
 				if((curDebounce == GLFW_KEY_2) && debounce) {
@@ -968,12 +998,6 @@ std::cout << "\nLoading the scene\n\n";
 							play(2);
 						}
 					}
-
-					//debug1.y = 1.0 - debug1.y;
-					//int idx = 0;
-					//const glm::mat4 cur = SC.TI[4].I[idx].Wm;
-					// Flip around Z (you used {0,0,1}); choose localAxis=true to spin around card’s own axis
-					//cardAnim.startFlipFromCurrent(4, idx, cur, 1.0f, glm::vec3(0,0,1), /*localAxis=*/true);
 				}
 			} else {
 				if((curDebounce == GLFW_KEY_3) && debounce) {
@@ -1017,25 +1041,6 @@ std::cout << "\nLoading the scene\n\n";
 				}
 			}
 
-			static int curAnim = 0;
-			/*
-			if(glfwGetKey(window, GLFW_KEY_SPACE)) {
-				if(!debounce) {
-					debounce = true;
-					curDebounce = GLFW_KEY_SPACE;
-
-					curAnim = (curAnim + 1) % 5;
-					AB.Start(curAnim, 0.5);
-	std::cout << "Playing anim: " << curAnim << "\n";
-				}
-			} else {
-				if((curDebounce == GLFW_KEY_SPACE) && debounce) {
-					debounce = false;
-					curDebounce = 0;
-				}
-			}
-			*/
-
 			if (glfwGetKey(window, GLFW_KEY_9)) {
 				if (!debounce) {
 					debounce = true;
@@ -1052,26 +1057,26 @@ std::cout << "\nLoading the scene\n\n";
 			}
 
 			// moves the view
-			float deltaT = GameLogic();
+			float deltaT = CameraLogic();
 
-			// updated the animation
-			const float SpeedUpAnimFact = 0.85f;
-			AB.Advance(deltaT * SpeedUpAnimFact);
+			if(newGame) {
+				drawNewRound();
+				newGame = false;
+				gameOver = false;
+				gc.dealInitialCards();
+				cpuChoice = cpuCards.empty() ? -1 : std::rand() % static_cast<int>(cpuCards.size());
+			}
+
+			// Progress card animations by delta time
+			if (ca) ca->tick(deltaT);
 
 			// defines the global parameters for the uniform
 			const glm::mat4 lightView = glm::rotate(glm::mat4(1), glm::radians(-30.0f), glm::vec3(0.0f,1.0f,0.0f)) * glm::rotate(glm::mat4(1), glm::radians(-45.0f), glm::vec3(1.0f,0.0f,0.0f));
 			const glm::vec3 lightDir = glm::vec3(lightView * glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
-
 			GlobalUniformBufferObject gubo{};
-
 			gubo.lightDir = lightDir;
 			gubo.lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 			gubo.eyePos = cameraPos;
-			if (selectedCardIndex >= 0 && selectedCardIndex < (int)playerCards.size()) {
-				gubo.highlightCardIndex = playerCards[selectedCardIndex].id; // actual scene ID
-			} else {
-				gubo.highlightCardIndex = -1; // no card highlighted
-			}
 
 			// defines the local parameters for the uniforms
 			UniformBufferObjectChar uboc{};
@@ -1128,111 +1133,6 @@ std::cout << "\nLoading the scene\n\n";
 			}
 
 			// CARD objects
-			if(newGame) {
-				float animDur = 0.8f; //usually 0.8f
-				float animWait = 0.5f; // usually 0.5f
-				glm::vec3 basePos(-0.177f, 0.563f, 0.0f);
-				float g = gameOver? 0.0f : 1.0f;
-				std::vector<Card> cards = gc.getDeck();
-				std::cout << "Dealing new game, deck size = " << cards.size() << "\n";
-				float i = 0.0f;
-				for(int j = cards.size() - 1; j >= 0; --j) {
-					int id = cards[j].id;
-					float yOffset = 0.00025f * i;
-					glm::vec3 pos = basePos + glm::vec3(0.0f, yOffset, 0.0f);
-					glm::mat4 cur = SC.TI[4].I[id].Wm;
-					ca->addMoveAndRotate(
-						id,
-						cur,
-						pos,
-						animDur*g,
-						180.0f, glm::vec3(0,0,1),
-						animDur*g,
-						false
-					);
-					i=i+1.0f;
-				}
-
-				newGame = false;
-				gameOver = false;
-
-				int id = cards.back().id; // whichever card instance you want
-				glm::mat4 cur = SC.TI[4].I[id].Wm;
-				ca->addMove  (id, cur, glm::vec3(0.0f, 0.563f, 0.0f), 0.8f);
-
-				ca->addMoveAndRotate(
-					id,
-					cur,
-					glm::vec3(0.0f, 0.593f, 0.0f),
-					animDur/2,
-					180.0f, glm::vec3(0,0,1),
-					animDur ,
-					false
-				);
-				ca->addWait(id, cur, animWait*2);
-				ca->addMoveAndRotate(
-					id,
-					cur,
-					glm::vec3(-0.16f, 0.563f, 0.0f),
-					animDur,
-					-90.0f, glm::vec3(0,1, 0),
-					animDur ,
-					false
-				);
-				ca->addGlobalWait(animWait*7);
-
-				playerCards.clear();
-				cpuCards.clear();
-				i=0.0f;
-				float offset = 0.06325f;
-				for (int j=0; j<6; j=j+2) {
-					id = cards.at(j).id;
-					cur = SC.TI[4].I[id].Wm;
-					ca->addMoveAndRotate(
-						id,
-						cur,
-						glm::vec3(0.0f, 0.563f, 0.2f),
-						animDur ,
-						180.0f, glm::vec3(0,1, 0),
-						animDur ,
-						false
-					);
-					ca->addMoveAndRotate(
-						id,
-						cur,
-						glm::vec3(-offset+i, 0.75f, 0.5f),
-						animDur ,
-						-90.0f, glm::vec3(1,0, 0),
-						animDur ,
-						false
-					);
-					ca->addGlobalWait(animWait);
-					id = cards.at(j+1).id;
-					cur = SC.TI[4].I[id].Wm;
-					ca->addMove  (id, cur, glm::vec3(0.0f, 0.563f, -0.2f), 0.8f);
-					ca->addMoveAndRotate(
-						id,
-						cur,
-						glm::vec3(offset-i, 0.75f, -0.5f),
-						animDur ,
-						90.0f, glm::vec3(1,0, 0),
-						animDur ,
-						false
-					);
-					ca->addGlobalWait(animWait);
-					i+=offset;
-					//std::cout << "ello " << j << " x " << i << "\n";
-					playerCards.push_back(cards.at(j));
-					cpuCards.push_back(cards.at(j + 1));
-				}
-				gc.dealInitialCards();
-				cpuChoice = cpuCards.empty() ? -1 : std::rand() % static_cast<int>(cpuCards.size());
-
-
-			}
-
-			if (ca) ca->tick(dt);
-
 			UniformBufferObjectCard ubos2{};
 			for(instanceId = 0; instanceId < SC.TI[4].InstanceCount; instanceId++) {
 
@@ -1240,13 +1140,17 @@ std::cout << "\nLoading the scene\n\n";
 				ubos2.mvpMat = ViewPrj * ubos2.mMat;
 				ubos2.nMat   = glm::inverse(glm::transpose(ubos2.mMat));
 				ubos2.cardIndex = instanceId;
+				if (selectedCardIndex >= 0 && selectedCardIndex < (int)playerCards.size()) {
+					ubos2.highlightCardIndex = playerCards[selectedCardIndex].id; // actual scene ID
+				} else {
+					ubos2.highlightCardIndex = -1; // no card highlighted
+				}
 
 				SC.TI[4].I[instanceId].DS[0][0]->map(currentImage, &gubo, 0); // Set 0
 				SC.TI[4].I[instanceId].DS[0][1]->map(currentImage, &ubos2, 0);  // Set 1
 			}
 
-
-
+			// === Text update section ===
 			// updates the FPS
 			static float elapsedT = 0.0f;
 			static int countedFrames = 0;
@@ -1320,16 +1224,16 @@ std::cout << "\nLoading the scene\n\n";
 		}
 	}
 
-	float GameLogic() {
+	float CameraLogic() {
 		// Parameters
 		// Camera FOV-y, Near Plane and Far Plane
 		const float FOVy = glm::radians(45.0f);
 		const float nearPlane = 0.1f;
 		const float farPlane = 100.f;
 		// Player starting point
-		const glm::vec3 StartingPosition = glm::vec3(0.0, 0.0, 5);
+		const glm::vec3 StartingPosition = glm::vec3(0.0f, 1.0f, 0.75f);
 		// Camera target height and distance
-		static float camHeight = 1.5;
+		static float camHeight = 0.5625f;
 		static float camDist = 5;
 		// Camera Pitch limits
 		const float minPitch = glm::radians(-8.75f);
@@ -1349,15 +1253,25 @@ std::cout << "\nLoading the scene\n\n";
 		getSixAxis(deltaT, m, r, fire);
 		float MOVE_SPEED = fire ? MOVE_SPEED_RUN : MOVE_SPEED_BASE;
 
+		// Camera logic implementation
 		if (camSnapped) {
-			// disable all movement & rotation input
-			m = glm::vec3(0.0f);
-			r = glm::vec3(0.0f);
+			//Projection
+			glm::mat4 Prj = glm::perspective(FOVy, Ar, nearPlane, farPlane);
+			Prj[1][1] *= -1;
+
+			// Place camera at some distance above table origin, looking down
+			glm::vec3 eye    = glm::vec3(0.0f, 1.0f, 0.75f); // adjust to taste
+			glm::vec3 target = glm::vec3(0.0f, 0.5625f, 0.0f); // table at origin
+			glm::vec3 up     = glm::vec3(0.0f, 1.0f, 0.0f);
+
+			glm::mat4 View = glm::lookAt(eye, target, up);
+			ViewPrj = Prj * View;
+
+			cameraPos = eye;
+			World = glm::mat4(1.0f);
+			return deltaT;
 		}
 
-
-
-		// Game Logic implementation
 		// Current Player Position - statc variable make sure its value remain unchanged in subsequent calls to the procedure
 		static glm::vec3 Pos = StartingPosition;
 		static glm::vec3 oldPos;
@@ -1380,8 +1294,6 @@ std::cout << "\nLoading the scene\n\n";
 		static float dampedRelDir = glm::radians(0.0f);
 		static glm::vec3 dampedCamPos = StartingPosition;
 
-
-
 		// World
 		// Position
 		glm::vec3 ux = glm::rotate(glm::mat4(1.0f), Yaw, glm::vec3(0,1,0)) * glm::vec4(1,0,0,1);
@@ -1395,21 +1307,6 @@ std::cout << "\nLoading the scene\n\n";
 		Pitch = Pitch - ROT_SPEED * deltaT * r.x;
 		Pitch  =  Pitch < minPitch ? minPitch :
 				   (Pitch > maxPitch ? maxPitch : Pitch);
-
-		// --- force snapped view when camSnapped is ON ---
-		if (camSnapped) {
-			// Lock to a top-down-ish 45° view towards the table
-			Pitch = glm::radians(45.0f);          // look down 45°
-			// keep current Yaw (so you see the table from your current azimuth),
-			// or set a fixed one if you prefer: Yaw = glm::radians(0.0f);
-
-			// lock camera height/distance: use a pleasant overhead distance
-			camHeight = 0.75f;                    // eye height over target (table)
-			camDist   = 3.0f;                     // distance from target
-
-			// no smoothing while snapped: place camera instantly
-			// (we’ll also set dampedCamPos later to cameraPos to remove lag)
-		}
 
 		float ef = exp(-10.0 * deltaT);
 		// Rotational independence from view with damping
@@ -1426,7 +1323,6 @@ std::cout << "\nLoading the scene\n\n";
 		// Projection
 		glm::mat4 Prj = glm::perspective(FOVy, Ar, nearPlane, farPlane);
 		Prj[1][1] *= -1;
-
 		// View
 		// Target
 		glm::vec3 target = Pos + glm::vec3(0.0f, camHeight, 0.0f);
@@ -1436,11 +1332,6 @@ std::cout << "\nLoading the scene\n\n";
 		cameraPos = camWorld * glm::vec4(0.0f, camHeight + camDist * sin(Pitch), camDist * cos(Pitch), 1.0);
 		// Damping of camera
 		dampedCamPos = ef * dampedCamPos + (1.0f - ef) * cameraPos;
-
-		if (camSnapped) {
-			// kill damping so it snaps; also freeze dampedRelDir if you like
-			dampedCamPos = cameraPos;
-		}
 
 		glm::mat4 View = glm::lookAt(dampedCamPos, target, glm::vec3(0,1,0));
 
@@ -1461,26 +1352,6 @@ std::cout << "\nLoading the scene\n\n";
 				currRunState = 3;
 			}
 		}
-
-		//printCameraInfo(cameraPos, target);
-
-		if (camSnapped) {
-			// Projection
-			glm::mat4 Prj = glm::perspective(glm::radians(45.0f), Ar, 0.1f, 100.0f);
-			Prj[1][1] *= -1;
-
-			// Place camera at some distance above table origin, looking down
-			glm::vec3 eye    = glm::vec3(0.0f, 1.0f, 0.75f); // adjust to taste
-			glm::vec3 target = glm::vec3(0.0f, 0.5625f, 0.0f); // table at origin
-			glm::vec3 up     = glm::vec3(0.0f, 1.0f, 0.0f);
-
-			glm::mat4 View = glm::lookAt(eye, target, up);
-			ViewPrj = Prj * View;
-
-			cameraPos = eye;
-			World     = glm::mat4(1.0f); // freeze world if you want
-		}
-
 
 		return deltaT;
 	}

@@ -5,6 +5,7 @@ layout(location = 0) in vec3 fragPos;
 layout(location = 1) in vec3 fragNorm;
 layout(location = 2) in vec2 fragUV;
 layout(location = 3) flat in int vCardIndex;
+layout(location = 4) flat in int highlightCardIndex;
 
 layout(location = 0) out vec4 outColor;
 
@@ -15,7 +16,6 @@ layout(binding = 0, set = 0) uniform GlobalUniformBufferObject {
 	vec3 lightDir;
 	vec4 lightColor;
 	vec3 eyePos;
-	int highlightCardIndex;
 } gubo;
 
 const float PI = 3.14159265359;
@@ -128,7 +128,7 @@ void main() {
 	vec4 finalColor = vec4(col, 1.0f);
 
     // Highlight if this is the selected card
-    if (vCardIndex == gubo.highlightCardIndex) {
+    if (vCardIndex == highlightCardIndex) {
         float edgeDist = min(min(fragUV.x, 1.0 - fragUV.x), min(fragUV.y, 1.0 - fragUV.y));
         float glow = smoothstep(0.08, 0.0, edgeDist);
         finalColor.rgb += glow * vec3(1.0, 0.6, 0.2) * 1.5;
