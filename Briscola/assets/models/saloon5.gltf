@@ -12,24 +12,24 @@
             "bufferView": 0,
             "byteOffset": 0,
             "componentType": 5126,
-            "count": 8625,
+            "count": 94050,
             "type": "VEC3",
             "max": [
-                -61.1522331237793,
-                20.564964294433594,
-                25.24399757385254
+                113.88711547851563,
+                78.74018859863281,
+                102.62422180175781
             ],
             "min": [
-                -87.50029754638672,
-                0.7361240386962891,
-                -12.013006210327148
+                -115.35679626464844,
+                -1.0528637170791626,
+                -102.7065200805664
             ]
         },
         {
             "bufferView": 1,
             "byteOffset": 0,
             "componentType": 5126,
-            "count": 8625,
+            "count": 94050,
             "type": "VEC3",
             "max": [
                 1.0,
@@ -46,25 +46,25 @@
             "bufferView": 2,
             "byteOffset": 0,
             "componentType": 5126,
-            "count": 8625,
+            "count": 94050,
             "type": "VEC2",
             "max": [
-                0.897570013999939,
-                0.5157135128974915
+                0.9979618787765503,
+                1.0
             ],
             "min": [
-                0.06700220704078674,
-                0.3268418312072754
+                -1.9195621092649162e-8,
+                0.0
             ]
         },
         {
             "bufferView": 3,
             "byteOffset": 0,
             "componentType": 5125,
-            "count": 28080,
+            "count": 236538,
             "type": "SCALAR",
             "max": [
-                8624
+                94049
             ],
             "min": [
                 0
@@ -73,50 +73,50 @@
     ],
     "buffers": [
         {
-            "byteLength": 388320,
-            "uri": "chairandtable_0.bin"
+            "byteLength": 3955752,
+            "uri": "saloon5_0.bin"
         }
     ],
     "bufferViews": [
         {
             "buffer": 0,
             "byteOffset": 0,
-            "byteLength": 103500,
+            "byteLength": 1128600,
             "target": 34962
         },
         {
             "buffer": 0,
-            "byteOffset": 103500,
-            "byteLength": 103500,
+            "byteOffset": 1128600,
+            "byteLength": 1128600,
             "target": 34962
         },
         {
             "buffer": 0,
-            "byteOffset": 207000,
-            "byteLength": 69000,
+            "byteOffset": 2257200,
+            "byteLength": 752400,
             "target": 34962
         },
         {
             "buffer": 0,
-            "byteOffset": 276000,
-            "byteLength": 112320,
+            "byteOffset": 3009600,
+            "byteLength": 946152,
             "target": 34963
         }
     ],
     "images": [
         {
-            "uri": "textures/image_0.png"
+            "uri": "../textures/saloon.png"
         }
     ],
     "materials": [
         {
-            "name": "ChairAndTableMaterial",
+            "name": "SaloonMaterial",
             "pbrMetallicRoughness": {
                 "baseColorTexture": {
                     "index": 0
                 },
-                "metallicFactor": 0.2883003056049347,
-                "roughnessFactor": 0.8929713368415833
+                "metallicFactor": 0.0,
+                "roughnessFactor": 0.5
             },
             "doubleSided": true
         }
@@ -140,16 +140,16 @@
     ],
     "nodes": [
         {
-            "name": "chairandtable",
+            "name": "saloon5",
             "children": [
                 1
             ]
         },
         {
-            "name": "ChairAndTable",
+            "name": "Model",
             "mesh": 0,
             "extras": {
-                "name": "ChairAndTable"
+                "name": "Model"
             }
         }
     ],
