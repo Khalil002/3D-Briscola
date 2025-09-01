@@ -362,7 +362,7 @@ class BRISCOLA : public BaseProject {
 		gameState = GameState::MENU;
 		camSnapped = true;
 		isDone = false;
-		menuIndex = 0;
+		menuIndex = 1;
 		selectedCardIndex = -1;
 		ca = std::make_unique<CardAnimator>(
 			[this](int idx, const glm::mat4& M){ SC.TI[4].I[idx].Wm = M; },
@@ -882,7 +882,7 @@ class BRISCOLA : public BaseProject {
 				glm::vec3 forward = glm::normalize(target - eye);
 
 				// Keep it safely beyond the near plane (0.01f).
-				const float menuCardDist = 0.05f;
+				const float menuCardDist = 0.035f;
 				glm::vec3 menuCardPos = eye + forward * menuCardDist;
 				ca->addMove(id, cur,  glm::vec3(0, 0.5, 0));
 				ca->addRotate(id, cur, -90.0f, glm::vec3(0, 1, 0), 0.0f, false);
@@ -916,7 +916,7 @@ class BRISCOLA : public BaseProject {
 			if (glfwGetKey(window, GLFW_KEY_SPACE) && !debounce) {
 				debounce = true; curDebounce = GLFW_KEY_SPACE;
 
-				if (menuIndex == 0) {
+				if (menuIndex == 1) {
 					// Play
 					gameState = GameState::PLAYING; //PLAYING SELECTED
 					gc.run();
@@ -935,12 +935,12 @@ class BRISCOLA : public BaseProject {
 			}
 
 			// Render the menu text only if in the MENU state
-			txt.print(0.0f, 0.2f, "PLAY", 10, "CO", false, false, true,
+			txt.print(0.0f, 0.2f, "EXIT", 10, "CO", false, false, true,
 					  TAL_CENTER, TRH_CENTER, TRV_MIDDLE,
 					  (menuIndex == 0) ? glm::vec4(1, 0.5, 0, 1) : glm::vec4(1, 1, 1, 1),
 					  {0, 0, 0, 1});
 
-			txt.print(0.0f, -0.2f, "EXIT", 11, "CO", false, false, true,
+			txt.print(0.0f, -0.2f, "PLAY", 11, "CO", false, false, true,
 					  TAL_CENTER, TRH_CENTER, TRV_MIDDLE,
 					  (menuIndex == 1) ? glm::vec4(1, 0.5, 0, 1) : glm::vec4(1, 1, 1, 1),
 					  {0, 0, 0, 1});
