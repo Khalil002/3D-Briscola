@@ -4,7 +4,7 @@ A 3D <a href="https://en.wikipedia.org/wiki/Briscola">Briscola</a> game made in 
 
 ## Overview
 
-Briscola is an italian card games, it is played using an italian 40-card deck and it can be played in many different configurations. In this project, we implement the classic briscola 1v1 game, where you, the player, plays a briscola game against the CPUa 3D enviroment.
+Briscola is an italian card games, it is played using an italian 40-card deck and it can be played in many different configurations. In this project, we implement the classic briscola 1v1 game, where you, the player, plays a briscola game against the CPU in a 3D enviroment.
 
 ![](https://github.com/user-attachments/assets/b1aa46a6-2107-4157-9e00-eeaa7f9f7ed8)
 
