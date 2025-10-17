@@ -6,11 +6,7 @@ A 3D Briscola game made in Vulkan
 
 Briscola is an italian card games, for more information on how to play, check the <a href="https://en.wikipedia.org/wiki/Briscola">wiki</a>
 Here we implement a player VS cpu Briscola game in a 3D enviroment.
-<video width="600" controls>
-<source src="https://github.com/user-attachments/assets/b1aa46a6-2107-4157-9e00-eeaa7f9f7ed8" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
-
+![](https://github.com/user-attachments/assets/b1aa46a6-2107-4157-9e00-eeaa7f9f7ed8)
 
 
 ## Controls
